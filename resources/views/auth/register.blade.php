@@ -20,35 +20,6 @@
                 <input class="input" id="email" type="email" name="email" value="{{ old('email') }}" required>
             </div>
 
-            <div class="field">
-                <label for="verification_code">Verification Code</label>
-                <input
-                    class="input"
-                    id="verification_code"
-                    type="text"
-                    name="verification_code"
-                    value="{{ old('verification_code') }}"
-                    inputmode="numeric"
-                    autocomplete="one-time-code"
-                    maxlength="6"
-                    pattern="[0-9]{6}"
-                    required
-                >
-            </div>
-
-            <div class="field" style="align-self: end;">
-                <button
-                    class="ghost-button"
-                    type="submit"
-                    formaction="{{ route('register.verification-code') }}"
-                    formmethod="POST"
-                    formnovalidate
-                    style="width: 100%;"
-                >
-                    Send Code
-                </button>
-            </div>
-
             <div class="field span-2">
                 <label for="contact_phone">Contact Number</label>
                 <input class="input" id="contact_phone" name="contact_phone" value="{{ old('contact_phone') }}" inputmode="tel" autocomplete="tel" required>

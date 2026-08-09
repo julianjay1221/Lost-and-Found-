@@ -11,7 +11,6 @@ Route::get('/', [ReportController::class, 'index'])->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register/verification-code', [AuthController::class, 'sendRegistrationVerificationCode'])->middleware('throttle:3,1')->name('register.verification-code');
     Route::post('/register', [AuthController::class, 'register']);
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);

@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthAccountTypeTest extends TestCase
@@ -17,10 +16,25 @@ class AuthAccountTypeTest extends TestCase
             ->get(route('register'))
             ->assertOk()
             ->assertSeeText('Create Student Account')
-            ->assertSeeText('Verification Code')
-            ->assertSeeText('Send Code')
+            ->assertDontSeeText('Verification Code')
+            ->assertDontSeeText('Send Code')
             ->assertDontSee('value="admin"', false)
             ->assertDontSeeText('Admin');
+    }
+
+    public function test_registration_rejects_weak_passwords_like_12345678(): void
+    {
+        $this
+            ->post(route('register'), [
+                'name' => 'Weak Password User',
+                'email' => 'weak-password@example.com',
+                'contact_phone' => '09171234568',
+                'password' => '12345678',
+                'password_confirmation' => '12345678',
+            ])
+            ->assertSessionHasErrors('password');
+
+        $this->assertDatabaseMissing('users', ['email' => 'weak-password@example.com']);
     }
 
     public function test_student_login_side_has_create_account_button(): void
@@ -47,19 +61,11 @@ class AuthAccountTypeTest extends TestCase
     public function test_public_registration_creates_student_even_if_admin_role_is_posted(): void
     {
         $this
-            ->withSession([
-                'registration_verification' => [
-                    'email' => 'student@example.com',
-                    'code' => Hash::make('123456'),
-                    'expires_at' => now()->addMinutes(15)->toIso8601String(),
-                ],
-            ])
             ->post(route('register'), [
                 'name' => 'New Student',
                 'email' => 'student@example.com',
                 'contact_phone' => '09171234567',
                 'role' => 'admin',
-                'verification_code' => '123456',
                 'password' => 'password123',
                 'password_confirmation' => 'password123',
             ])
