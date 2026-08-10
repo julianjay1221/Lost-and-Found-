@@ -11,8 +11,8 @@
             @csrf
 
             <div class="field span-2">
-                <label for="name">Name</label>
-                <input class="input" id="name" type="text" name="name" value="{{ old('name') }}" required autofocus>
+                <label for="user_id">User ID</label>
+                <input class="input" id="user_id" type="text" name="user_id" value="{{ old('user_id') }}" required autofocus>
             </div>
 
             <div class="field span-2">
@@ -20,19 +20,20 @@
                 <input class="input" id="email" type="email" name="email" value="{{ old('email') }}" required>
             </div>
 
-            <div class="field span-2">
-                <label for="contact_phone">Contact Number</label>
-                <input class="input" id="contact_phone" name="contact_phone" value="{{ old('contact_phone') }}" inputmode="tel" autocomplete="tel" required>
-            </div>
-
             <div class="field">
                 <label for="password">Password</label>
-                <input class="input" id="password" type="password" name="password" required>
+                <div class="password-field">
+                    <input class="input" id="password" type="password" name="password" required autocomplete="new-password" spellcheck="false">
+                    <button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false">👁️</button>
+                </div>
             </div>
 
             <div class="field">
                 <label for="password_confirmation">Confirm Password</label>
-                <input class="input" id="password_confirmation" type="password" name="password_confirmation" required>
+                <div class="password-field">
+                    <input class="input" id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password" spellcheck="false">
+                    <button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false">👁️</button>
+                </div>
             </div>
 
             <div class="span-2" style="display: flex; gap: 10px; align-items: center;">

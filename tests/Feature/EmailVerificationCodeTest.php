@@ -14,11 +14,10 @@ class EmailVerificationCodeTest extends TestCase
     {
         $this
             ->post(route('register'), [
-                'name' => 'Verification Student',
+                'user_id' => 'S12349',
                 'email' => 'verify-pass@example.com',
-                'contact_phone' => '09171230001',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
+                'password' => 'StrongP@ss123',
+                'password_confirmation' => 'StrongP@ss123',
             ])
             ->assertRedirect(route('student.dashboard'));
 

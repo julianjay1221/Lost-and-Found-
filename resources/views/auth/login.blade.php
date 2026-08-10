@@ -25,13 +25,16 @@
             <input type="hidden" name="side" value="{{ $selectedSide }}">
 
             <div class="field span-2">
-                <label for="email">Email</label>
-                <input class="input" id="email" type="email" name="email" value="{{ old('email') }}" required autofocus>
+                <label for="user_id">User ID</label>
+                <input class="input" id="user_id" type="text" name="user_id" value="{{ old('user_id', old('email')) }}" required autofocus autocomplete="new-password" spellcheck="false" autocapitalize="none">
             </div>
 
             <div class="field span-2">
                 <label for="password">Password</label>
-                <input class="input" id="password" type="password" name="password" required>
+                <div class="password-field">
+                    <input class="input" id="password" type="password" name="password" required autocomplete="new-password" spellcheck="false">
+                    <button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false">👁️</button>
+                </div>
             </div>
 
             <label class="field span-2" style="display: flex; align-items: center; gap: 8px;">
@@ -45,6 +48,12 @@
                     <a class="ghost-button" href="{{ route('register') }}">Create Account</a>
                 @endif
             </div>
+
+            @if ($selectedSide === 'admin')
+                <p class="field span-2 muted" style="margin: 0; font-size: 0.9rem;">
+                    Use the predefined Admin ID and Password configured in the environment.
+                </p>
+            @endif
         </form>
     </section>
 @endsection

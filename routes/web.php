@@ -29,7 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/reports/{itemReport}/claim', [ReportController::class, 'claim'])->name('reports.claim');
     Route::delete('/reports/{itemReport}', [ReportController::class, 'destroy'])->name('reports.destroy');
 
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware('can:access-admin')->group(function () {
         Route::get('/', [AdminReportController::class, 'index'])->name('dashboard');
         Route::patch('/reports/{itemReport}/approve', [AdminReportController::class, 'approve'])->name('reports.approve');
         Route::patch('/reports/{itemReport}/reject', [AdminReportController::class, 'reject'])->name('reports.reject');

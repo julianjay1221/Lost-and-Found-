@@ -21,7 +21,7 @@
         <a class="ghost-button" href="{{ route('home') }}">View Board</a>
     </section>
 
-    <section class="panel">
+    <section class="panel report-form-panel">
         <form method="POST" action="{{ route('reports.store') }}" enctype="multipart/form-data" class="form-grid">
             @csrf
 
@@ -41,7 +41,7 @@
 
             <div class="field">
                 <label for="item_name">Item Name</label>
-                <input class="input" id="item_name" name="item_name" value="{{ old('item_name') }}" required>
+                <input class="input" id="item_name" name="item_name" value="{{ old('item_name') }}">
             </div>
 
             <div class="field">
@@ -65,15 +65,11 @@
                 >
             </div>
 
-            <div class="field">
-                <label for="happened_at">Date & Time</label>
-                <input class="input" id="happened_at" type="datetime-local" name="happened_at" value="{{ old('happened_at') }}">
+            <div class="field span-2" style="max-width: 420px; margin: 0 auto; width: 100%;">
+                <label for="happened_at" style="text-align: center;">Date & Time</label>
+                <input class="input" id="happened_at" type="datetime-local" name="happened_at" value="{{ old('happened_at') }}" style="text-align: center;">
             </div>
 
-            <div class="field">
-                <label id="location-label" for="location">{{ $selectedType === 'found' ? 'Pick Up Location' : 'Last Known Location' }}</label>
-                <input class="input" id="location" name="location" value="{{ old('location') }}" required>
-            </div>
 
             <div class="field span-2">
                 <label for="description">Description</label>
@@ -109,24 +105,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const reportTypeInputs = document.querySelectorAll('input[name="type"]');
-            const locationLabel = document.getElementById('location-label');
             const categorySelect = document.getElementById('category');
             const customCategoryInput = document.getElementById('category_custom');
 
-            if (!locationLabel || !categorySelect || !customCategoryInput) {
+            if (!categorySelect || !customCategoryInput) {
                 return;
             }
 
             const customCategoryValue = categorySelect.dataset.customCategoryValue || '';
-
-            reportTypeInputs.forEach((reportTypeInput) => {
-                reportTypeInput.addEventListener('change', () => {
-                    locationLabel.textContent = reportTypeInput.value === 'found'
-                        ? 'Pick Up Location'
-                        : 'Last Known Location';
-                });
-            });
 
             categorySelect.addEventListener('change', updateCustomCategoryField);
 

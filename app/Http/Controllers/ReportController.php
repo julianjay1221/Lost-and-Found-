@@ -71,7 +71,7 @@ class ReportController extends Controller
 
         $data = $request->validate([
             'type' => ['required', Rule::in([ItemReport::TYPE_LOST, ItemReport::TYPE_FOUND])],
-            'item_name' => ['required', 'string', 'max:120'],
+            'item_name' => ['nullable', 'string', 'max:120'],
             'category' => ['required', 'string', 'max:80'],
             'category_custom' => [
                 'nullable',
@@ -81,7 +81,12 @@ class ReportController extends Controller
                 Rule::notIn([self::CUSTOM_CATEGORY_VALUE]),
             ],
             'happened_at' => ['nullable', 'date'],
-            'location' => ['required', 'string', 'max:180'],
+            'location' => [
+                Rule::requiredIf($request->input('type') !== ItemReport::TYPE_FOUND),
+                'nullable',
+                'string',
+                'max:180',
+            ],
             'description' => ['nullable', 'string', 'max:1000'],
             'contact_name' => ['required', 'string', 'max:120'],
             'contact_phone' => ['required', 'string', 'max:50'],

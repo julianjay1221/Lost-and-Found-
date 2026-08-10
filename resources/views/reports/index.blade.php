@@ -70,7 +70,9 @@
                         <span class="badge badge-category">{{ $report->category }}</span>
                     </div>
                     <h3>{{ $report->item_name }}</h3>
-                    <p class="muted">{{ $report->location }}</p>
+                    @if ($report->type !== 'found')
+                        <p class="muted">{{ $report->location }}</p>
+                    @endif
                     <p>{{ \Illuminate\Support\Str::limit($report->description, 130) }}</p>
                     <p class="muted">
                         Contact:

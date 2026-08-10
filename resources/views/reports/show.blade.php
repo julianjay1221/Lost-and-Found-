@@ -17,32 +17,34 @@
     </section>
 
     <section class="panel" style="margin-bottom: 18px;">
-        <dl class="detail-list">
-            <div>
-                <dt>{{ $itemReport->type === 'found' ? 'Pick Up Location' : 'Last Known Location' }}</dt>
-                <dd>{{ $itemReport->location }}</dd>
+        <div style="display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 18px;">
+            @if ($itemReport->type !== 'found')
+                <div style="padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+                    <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px;">Location</div>
+                    <div style="font-size: 0.95rem; color: #0f172a; line-height: 1.5;">{{ $itemReport->location }}</div>
+                </div>
+            @endif
+            <div style="padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px;">Date & Time</div>
+                <div style="font-size: 0.95rem; color: #0f172a; line-height: 1.5;">{{ $itemReport->happened_at?->format('M d, Y h:i A') ?? 'Not set' }}</div>
             </div>
-            <div>
-                <dt>Date & Time</dt>
-                <dd>{{ $itemReport->happened_at?->format('M d, Y h:i A') ?? 'Not set' }}</dd>
-            </div>
-            <div>
-                <dt>Contact</dt>
-                <dd>
+            <div style="padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px;">Contact</div>
+                <div style="font-size: 0.95rem; color: #0f172a; line-height: 1.5;">
                     {{ $itemReport->contact_name }}
                     @if ($itemReport->contact_phone)
-                        | Phone: {{ $itemReport->contact_phone }}
+                        <br><span style="color: #475569;">Phone: {{ $itemReport->contact_phone }}</span>
                     @endif
                     @if ($itemReport->contact_email)
-                        | Email: {{ $itemReport->contact_email }}
+                        <br><span style="color: #475569;">Email: {{ $itemReport->contact_email }}</span>
                     @endif
-                </dd>
+                </div>
             </div>
-            <div>
-                <dt>Submitted</dt>
-                <dd>{{ $itemReport->created_at->format('M d, Y h:i A') }}</dd>
+            <div style="padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px;">Submitted</div>
+                <div style="font-size: 0.95rem; color: #0f172a; line-height: 1.5;">{{ $itemReport->created_at->format('M d, Y h:i A') }}</div>
             </div>
-        </dl>
+        </div>
 
         <div style="margin-top: 16px;">
             <h2>Description</h2>
@@ -83,7 +85,6 @@
                                 <span class="badge badge-category">{{ $match->category }}</span>
                             </div>
                             <h3>{{ $match->item_name }}</h3>
-                            <p class="muted">{{ $match->type === 'found' ? 'Pick Up Location' : 'Last Known Location' }}: {{ $match->location }}</p>
                             <p>{{ \Illuminate\Support\Str::limit($match->description, 120) }}</p>
                             <form method="POST" action="{{ route('reports.claim', $itemReport) }}" style="margin-top: 12px;">
                                 @csrf

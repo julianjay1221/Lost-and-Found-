@@ -170,6 +170,32 @@ class ReportCategoryTest extends TestCase
             ->assertDontSeeText('No approved reports found');
     }
 
+    public function test_found_report_form_hides_location_field_and_allows_submission_without_location(): void
+    {
+        $student = $this->student('found-no-location@example.com');
+        $payload = $this->reportPayload([
+            'type' => ItemReport::TYPE_FOUND,
+        ]);
+        unset($payload['location']);
+
+        $this
+            ->actingAs($student)
+            ->get(route('reports.create', ['type' => ItemReport::TYPE_FOUND]))
+            ->assertOk()
+            ->assertDontSeeText('Pick Up Location');
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_FOUND,
+            'location' => null,
+        ]);
+    }
+
     public function test_student_can_submit_report_without_description(): void
     {
         $student = $this->student('optional-description@example.com');
