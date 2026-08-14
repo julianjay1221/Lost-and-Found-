@@ -51,7 +51,7 @@
     </section>
 
     @php
-        $statuses = ['pending', 'approved', 'claimed', 'closed', 'archived', 'rejected', 'blocked'];
+        $statuses = ['pending', 'approved', 'found', 'claimed', 'closed', 'archived', 'rejected', 'blocked'];
     @endphp
 
     @if ($claimAlerts->isNotEmpty())
@@ -74,6 +74,11 @@
                         <p class="muted">Claimed: {{ $alert->claimed_at?->format('M d, Y h:i A') ?? 'Recently' }}</p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <a class="button" href="{{ route('reports.show', $alert) }}">Review Claimed Report</a>
+                            <form method="POST" action="{{ route('admin.reports.confirm-claim', $alert) }}">
+                                @csrf
+                                @method('PATCH')
+                                <button class="button" type="submit">Confirm Claim</button>
+                            </form>
                             <form method="POST" action="{{ route('admin.reports.close', $alert) }}">
                                 @csrf
                                 @method('PATCH')
@@ -153,6 +158,10 @@
                     @if ($report->admin_notes)
                         <p style="margin-top: 12px;"><strong>Admin Notes:</strong> {{ $report->admin_notes }}</p>
                     @endif
+
+                    @if ($report->claim_confirmed_at)
+                        <p style="margin-top: 12px;"><strong>Claim Confirmed:</strong> {{ $report->claim_confirmed_at->format('M d, Y h:i A') }}</p>
+                    @endif
                 </div>
 
                 <div class="admin-actions">
@@ -180,7 +189,15 @@
                         </form>
                     @endif
 
-                    @if ($report->status === 'claimed')
+                    @if (in_array($report->status, ['found', 'claimed'], true))
+                        @if ($report->type === 'lost' && $report->status === 'claimed' && ! $report->claim_confirmed_at)
+                            <form method="POST" action="{{ route('admin.reports.confirm-claim', $report) }}">
+                                @csrf
+                                @method('PATCH')
+                                <button class="button" type="submit">Confirm Claim</button>
+                            </form>
+                        @endif
+
                         <form method="POST" action="{{ route('admin.reports.close', $report) }}">
                             @csrf
                             @method('PATCH')
@@ -188,7 +205,7 @@
                         </form>
                     @endif
 
-                    @if (in_array($report->status, ['claimed', 'closed'], true))
+                    @if (in_array($report->status, ['found', 'claimed', 'closed'], true))
                         <form method="POST" action="{{ route('admin.reports.archive', $report) }}" onsubmit="return confirm('Move this claimed report to archive?');">
                             @csrf
                             @method('PATCH')

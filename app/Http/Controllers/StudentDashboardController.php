@@ -38,7 +38,7 @@ class StudentDashboardController extends Controller
         $lostReports = ItemReport::query()
             ->where('user_id', $userId)
             ->where('type', ItemReport::TYPE_LOST)
-            ->where('status', ItemReport::STATUS_APPROVED)
+            ->whereIn('status', [ItemReport::STATUS_APPROVED, ItemReport::STATUS_FOUND])
             ->latest('updated_at')
             ->get();
 

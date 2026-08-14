@@ -48,6 +48,7 @@ class AdminReportController extends Controller
             ->where('type', ItemReport::TYPE_LOST)
             ->whereNotNull('matched_report_id')
             ->where('status', ItemReport::STATUS_CLAIMED)
+            ->whereNull('claim_confirmed_at')
             ->latest('claimed_at')
             ->limit(6)
             ->get();
@@ -69,12 +70,15 @@ class AdminReportController extends Controller
         ]);
 
         $notifiedCount = $wasAlreadyApproved ? 0 : $notifier->notifyLostOwners($itemReport->refresh());
+        $resolvedCount = $wasAlreadyApproved ? 0 : $notifier->markMatchingLostReportsFound($itemReport->refresh());
 
         return back()->with(
             'status',
-            $notifiedCount > 0
-                ? "Report approved. {$notifiedCount} matching lost item owner(s) were notified."
-                : 'Report approved.'
+            $resolvedCount > 0
+                ? "Report approved. {$resolvedCount} matching lost item report(s) marked as found."
+                : ($notifiedCount > 0
+                    ? "Report approved. {$notifiedCount} matching lost item owner(s) were notified."
+                    : 'Report approved.')
         );
     }
 
@@ -110,7 +114,7 @@ class AdminReportController extends Controller
     {
         $this->ensureAdmin($request);
 
-        abort_unless($itemReport->status === ItemReport::STATUS_CLAIMED, 403);
+        abort_unless(in_array($itemReport->status, [ItemReport::STATUS_FOUND, ItemReport::STATUS_CLAIMED], true), 403);
 
         $itemReport->update([
             'status' => ItemReport::STATUS_CLOSED,
@@ -123,12 +127,38 @@ class AdminReportController extends Controller
             ->with('status', 'Case closed.');
     }
 
+    public function confirmClaim(Request $request, ItemReport $itemReport): RedirectResponse
+    {
+        $this->ensureAdmin($request);
+
+        abort_unless($itemReport->type === ItemReport::TYPE_LOST, 403);
+        abort_unless($itemReport->status === ItemReport::STATUS_CLAIMED, 403);
+        abort_unless($itemReport->matchedReport !== null, 403);
+
+        $confirmedAt = now();
+
+        $itemReport->update([
+            'claim_confirmed_at' => $confirmedAt,
+            'admin_notes' => $request->input('admin_notes', $itemReport->admin_notes),
+        ]);
+
+        $itemReport->matchedReport->update([
+            'status' => ItemReport::STATUS_CLAIMED,
+            'claimed_at' => $itemReport->matchedReport->claimed_at ?? $itemReport->claimed_at ?? $confirmedAt,
+            'claim_confirmed_at' => $confirmedAt,
+        ]);
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('status', 'Claim confirmed. The claimed found item is now visible on the public dashboard.');
+    }
+
     public function archive(Request $request, ItemReport $itemReport): RedirectResponse
     {
         $this->ensureAdmin($request);
 
         abort_unless(
-            in_array($itemReport->status, [ItemReport::STATUS_CLAIMED, ItemReport::STATUS_CLOSED], true),
+            in_array($itemReport->status, [ItemReport::STATUS_FOUND, ItemReport::STATUS_CLAIMED, ItemReport::STATUS_CLOSED], true),
             403
         );
 

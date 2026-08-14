@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'reviewed_at',
     'blocked_at',
     'claimed_at',
+    'claim_confirmed_at',
     'matched_report_id',
     'closed_at',
     'archived_at',
@@ -41,6 +42,7 @@ class ItemReport extends Model
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_APPROVED = 'approved';
+    public const STATUS_FOUND = 'found';
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_BLOCKED = 'blocked';
     public const STATUS_CLAIMED = 'claimed';
@@ -70,6 +72,7 @@ class ItemReport extends Model
             'reviewed_at' => 'datetime',
             'blocked_at' => 'datetime',
             'claimed_at' => 'datetime',
+            'claim_confirmed_at' => 'datetime',
             'closed_at' => 'datetime',
             'archived_at' => 'datetime',
         ];
@@ -87,7 +90,23 @@ class ItemReport extends Model
 
     public function scopePublic(Builder $query): Builder
     {
-        return $query->where('status', self::STATUS_APPROVED);
+        return $query->where(function (Builder $query) {
+            $query
+                ->where('status', self::STATUS_APPROVED)
+                ->orWhere(function (Builder $query) {
+                    $query
+                        ->where('type', self::TYPE_FOUND)
+                        ->where('status', self::STATUS_CLAIMED)
+                        ->whereNotNull('claim_confirmed_at');
+                });
+        });
+    }
+
+    public function scopeActiveUnresolvedLost(Builder $query): Builder
+    {
+        return $query
+            ->where('type', self::TYPE_LOST)
+            ->where('status', self::STATUS_APPROVED);
     }
 
     public function scopeNotArchived(Builder $query): Builder
@@ -97,7 +116,7 @@ class ItemReport extends Model
 
     public function scopeClaimedOrClosed(Builder $query): Builder
     {
-        return $query->whereIn('status', [self::STATUS_CLAIMED, self::STATUS_CLOSED, self::STATUS_ARCHIVED]);
+        return $query->whereIn('status', [self::STATUS_FOUND, self::STATUS_CLAIMED, self::STATUS_CLOSED, self::STATUS_ARCHIVED]);
     }
 
     public function canBeDeletedByStudent(): bool

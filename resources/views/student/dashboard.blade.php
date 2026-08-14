@@ -4,7 +4,7 @@
 
 @section('content')
     <section class="welcome">
-        <h1>Welcome back, {{ strtok(auth()->user()->name, ' ') }}! 👋</h1>
+        <h1>Welcome back! 👋</h1>
         <p>Here's what's happening with your lost and found items today.</p>
     </section>
     <section class="stats-grid">
@@ -29,7 +29,13 @@
     <section class="dashboard-grid" id="my-reports">
         <section class="panel reports-panel">
             <div class="panel-head"><h2><span>♧</span> Recent Reports</h2><a class="view-all" href="#all-reports">View All Reports →</a></div>
-            <div class="status-filters"><button class="active" type="button" data-filter="all">All</button><button type="button" data-filter="lost">Lost</button><button type="button" data-filter="found">Found</button><button type="button" data-filter="claimed">Claimed</button><button type="button" data-filter="pending">Pending</button></div>
+            <div class="status-filters" aria-label="Recent report filters">
+                <button class="active" type="button" data-filter-mode="all" aria-pressed="true">All</button>
+                <button type="button" data-filter-mode="type" data-filter-value="lost" aria-pressed="false">Lost</button>
+                <button type="button" data-filter-mode="type" data-filter-value="found" aria-pressed="false">Found</button>
+                <button type="button" data-filter-mode="status" data-filter-value="claimed" aria-pressed="false">Claimed</button>
+                <button type="button" data-filter-mode="status" data-filter-value="pending" aria-pressed="false">Pending</button>
+            </div>
             <div id="all-reports">
                 @forelse ($reports as $report)
                     <article class="report-row" data-type="{{ $report->type }}" data-status="{{ $report->status }}">
@@ -48,5 +54,27 @@
             <section class="panel overview-card"><h2>Statistics Overview</h2><div class="overview-item"><i>♧</i><span>Lost Items</span><b>{{ $reports->where('type', 'lost')->count() }}</b></div><div class="overview-item"><i>♧</i><span>Found Items</span><b>{{ $reports->where('type', 'found')->count() }}</b></div><div class="overview-item"><i>✪</i><span>Claimed Items</span><b>{{ $stats['claimed'] }}</b></div><div class="overview-item"><i>◷</i><span>Pending Reports</span><b>{{ $stats['pending'] }}</b></div><div class="overview-total"><span>Total Reports</span><span>{{ $stats['total'] }}</span></div></section>
         </aside>
     </section>
-    <script>document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('[data-filter]').forEach(item => item.classList.remove('active')); button.classList.add('active'); const filter = button.dataset.filter; document.querySelectorAll('.report-row').forEach(row => row.hidden = filter !== 'all' && row.dataset.type !== filter && row.dataset.status !== filter); }));</script>
+    <script>
+        const filterButtons = document.querySelectorAll('[data-filter-mode]');
+        const reportRows = document.querySelectorAll('.report-row');
+
+        filterButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach((item) => {
+                    item.classList.remove('active');
+                    item.setAttribute('aria-pressed', 'false');
+                });
+
+                button.classList.add('active');
+                button.setAttribute('aria-pressed', 'true');
+
+                const mode = button.dataset.filterMode;
+                const value = button.dataset.filterValue;
+
+                reportRows.forEach((row) => {
+                    row.hidden = mode !== 'all' && row.dataset[mode] !== value;
+                });
+            });
+        });
+    </script>
 @endsection

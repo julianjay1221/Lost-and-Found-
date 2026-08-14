@@ -25,10 +25,44 @@
 @auth
     @if(auth()->user()->isStudent())
         <header class="topbar"><nav class="nav"><a class="brand" href="{{ route('student.dashboard') }}"><span class="brand-mark"><img src="{{ asset('images/isu-logo.png') }}" alt="Isabela State University logo"></span><span class="brand-text"><strong>ISABELA STATE UNIVERSITY</strong><span>Lost &amp; Found System</span></span></a><div class="user-menu"><span class="bell">♧<b>3</b></span><span class="avatar">♙</span><span><span class="user-name">{{ auth()->user()->name }}</span><span class="user-role">Student</span></span></div></nav></header>
-        <div class="app-shell"><aside class="sidebar"><a class="side-brand" href="{{ route('student.dashboard') }}"><span class="brand-mark"><img src="{{ asset('images/isu-logo.png') }}" alt="Isabela State University logo"></span><span><strong>ISABELA STATE UNIVERSITY</strong><small>Lost &amp; Found System</small></span></a><a class="side-link {{ request()->routeIs('student.dashboard') ? 'active' : '' }}" href="{{ route('student.dashboard') }}"><i>⌂</i>Dashboard</a><p class="side-label">REPORTS</p><a class="side-link" href="{{ route('reports.create',['type'=>'lost']) }}"><i>➤</i>Report Lost Item</a><a class="side-link" href="{{ route('reports.create',['type'=>'found']) }}"><i>⊕</i>Report Found Item</a><a class="side-link" href="{{ route('student.dashboard') }}#my-reports"><i>▤</i>My Reports</a><p class="side-label">SEARCH</p><a class="side-link" href="{{ route('home',['type'=>'found']) }}"><i>⌕</i>Browse Found Items</a><a class="side-link" href="{{ route('home') }}"><i>⌕</i>Search Items</a><p class="side-label">ACCOUNT</p><a class="side-link" href="{{ route('student.dashboard') }}"><i>♙</i>Profile</a><a class="side-link" href="{{ route('student.dashboard') }}"><i>♧</i>Notifications</a><form method="POST" action="{{ route('logout') }}">@csrf<button class="side-link" style="width:100%;border:0;background:none;cursor:pointer" type="submit"><i>↪</i>Logout</button></form></aside>
+        <div class="app-shell"><aside class="sidebar"><a class="side-brand" href="{{ route('student.dashboard') }}"><span class="brand-mark"><img src="{{ asset('images/isu-logo.png') }}" alt="Isabela State University logo"></span><span><strong>ISABELA STATE UNIVERSITY</strong><small>Lost &amp; Found System</small></span></a><a class="side-link {{ request()->routeIs('student.dashboard') ? 'active' : '' }}" href="{{ route('student.dashboard') }}"><i>⌂</i>Dashboard</a><a class="side-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><i>⌕</i>Public Homepage</a><p class="side-label">REPORTS</p><a class="side-link" href="{{ route('reports.create',['type'=>'lost']) }}"><i>➤</i>Report Lost Item</a><a class="side-link" href="{{ route('reports.create',['type'=>'found']) }}"><i>⊕</i>Report Found Item</a><a class="side-link" href="{{ route('student.dashboard') }}#my-reports"><i>▤</i>My Reports</a><p class="side-label">SEARCH</p><a class="side-link" href="{{ route('home',['type'=>'found']) }}"><i>⌕</i>Browse Found Items</a><a class="side-link" href="{{ route('home') }}"><i>⌕</i>Search Items</a><p class="side-label">ACCOUNT</p><a class="side-link" href="{{ route('student.dashboard') }}"><i>♙</i>Profile</a><a class="side-link" href="{{ route('student.dashboard') }}"><i>♧</i>Notifications</a><form method="POST" action="{{ route('logout') }}">@csrf<button class="side-link" style="width:100%;border:0;background:none;cursor:pointer" type="submit"><i>↪</i>Logout</button></form></aside>
             <main class="page">@include('layouts.partials.messages') @yield('content')</main></div>
+        <div class="live-stack" id="live-notifications" aria-live="polite" aria-label="Notifications"></div>
+        <script>
+            const liveNotificationContainer = document.getElementById('live-notifications');
+
+            const showLiveNotifications = async () => {
+                try {
+                    const response = await fetch('{{ route('student.notifications.unread') }}', {
+                        headers: { Accept: 'application/json' },
+                    });
+
+                    if (!response.ok) return;
+
+                    const { notifications } = await response.json();
+
+                    notifications.forEach((notification) => {
+                        const alert = document.createElement('a');
+                        alert.className = 'live-notification';
+                        alert.href = notification.url;
+                        const title = document.createElement('strong');
+                        title.textContent = notification.title;
+                        const message = document.createElement('p');
+                        message.textContent = notification.message;
+                        alert.append(title, message);
+                        liveNotificationContainer.append(alert);
+                        window.setTimeout(() => alert.remove(), 12000);
+                    });
+                } catch (_) {
+                    // Notification polling should not interrupt the dashboard.
+                }
+            };
+
+            showLiveNotifications();
+            window.setInterval(showLiveNotifications, 10000);
+        </script>
     @else
-        <header class="topbar"><nav class="nav"><a class="brand" href="{{ route('home') }}"><span class="brand-mark">♜</span><span class="brand-text"><strong>ReLink</strong><span>Lost &amp; Found System</span></span></a><div class="user-menu"><a href="{{ route('home') }}">Public Board</a><form method="POST" action="{{ route('logout') }}">@csrf <button class="nav-button" type="submit">Logout</button></form></div></nav></header><main class="page">@include('layouts.partials.messages') @yield('content')</main>
+        <header class="topbar"><nav class="nav"><a class="brand" href="{{ route('admin.dashboard') }}"><span class="brand-mark"><img src="{{ asset('images/isu-admin-logo.png') }}" alt="Isabela State University logo"></span><span class="brand-text"><strong>ISABELA STATE UNIVERSITY</strong><span>Lost &amp; Found System · Admin</span></span></a><div class="user-menu"><a href="{{ route('home') }}">Public Board</a><form method="POST" action="{{ route('logout') }}">@csrf <button class="nav-button" type="submit">Logout</button></form></div></nav></header><main class="page">@include('layouts.partials.messages') @yield('content')</main>
     @endif
 @else
     <header class="topbar"><nav class="nav"><a class="brand" href="{{ route('home') }}"><span class="brand-mark"><img src="{{ asset('images/isu-logo.png') }}" alt="Isabela State University logo"></span><span class="brand-text"><strong>ISABELA STATE UNIVERSITY</strong><span>Lost &amp; Found System</span></span></a><div class="user-menu"><a href="{{ route('login') }}">Login</a><a class="nav-button" href="{{ route('register') }}">Sign Up</a></div></nav></header><main class="page">@include('layouts.partials.messages') @yield('content')</main>

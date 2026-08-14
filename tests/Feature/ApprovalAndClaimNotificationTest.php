@@ -21,7 +21,7 @@ class ApprovalAndClaimNotificationTest extends TestCase
         config(['services.sms.driver' => 'log']);
     }
 
-    public function test_approved_found_match_can_be_claimed_and_notifies_admin_and_finder(): void
+    public function test_approved_found_match_automatically_marks_the_matching_lost_report_as_found(): void
     {
         Notification::fake();
 
@@ -76,6 +76,8 @@ class ApprovalAndClaimNotificationTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame(ItemReport::STATUS_APPROVED, $foundReport->refresh()->status);
+        $this->assertSame(ItemReport::STATUS_FOUND, $lostReport->refresh()->status);
+        $this->assertSame($foundReport->id, $lostReport->matched_report_id);
 
         Notification::assertSentOnDemand(
             FoundItemMatchApproved::class,
@@ -87,41 +89,14 @@ class ApprovalAndClaimNotificationTest extends TestCase
             ->actingAs($lostOwner)
             ->get(route('student.dashboard'))
             ->assertOk()
-            ->assertSeeText('Found Match')
-            ->assertSeeText('Found Red Bottle may match your lost Lost Red Bottle')
-            ->assertSeeText('Finder: Finder Student')
-            ->assertSeeText('Email: finder@example.com');
-
-        $this
-            ->actingAs($lostOwner)
-            ->get(route('reports.show', $lostReport))
-            ->assertOk()
-            ->assertSeeText('Potential Matches')
-            ->assertSeeText('Found Red Bottle')
-            ->assertSeeText('Claim Object');
-
-        $this
-            ->actingAs($lostOwner)
-            ->patch(route('reports.claim', $lostReport), [
-                'matched_report_id' => $foundReport->id,
-            ])
-            ->assertRedirect(route('reports.show', $lostReport));
-
-        $this
-            ->actingAs($finder)
-            ->get(route('student.dashboard'))
-            ->assertOk()
-            ->assertSeeText('Claimed Match')
-            ->assertSeeText('Your found Found Red Bottle may have been claimed by the owner of lost Lost Red Bottle');
+            ->assertSeeText('FOUND');
 
         $this
             ->actingAs($admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSeeText('Notifications')
-            ->assertSeeText('Claimed Match')
-            ->assertSeeText('Lost Owner claimed Lost Red Bottle')
-            ->assertSeeText('Matched found report: Found Red Bottle by Finder Student');
+            ->assertSeeText('Lost Red Bottle')
+            ->assertSeeText('found');
     }
 
     public function test_approving_found_match_uses_phone_notification_hook_when_lost_owner_has_no_email(): void

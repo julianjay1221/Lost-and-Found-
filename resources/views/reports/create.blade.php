@@ -10,6 +10,7 @@
         $oldCategory = old('category');
         $usesCustomCategory = $oldCategory === $customCategoryValue || ($oldCategory && ! $categories->contains($oldCategory));
         $customCategoryName = old('category_custom', $usesCustomCategory && $oldCategory !== $customCategoryValue ? $oldCategory : '');
+        $schoolId = auth()->user()?->name ?? '';
     @endphp
 
     <section class="page-head">
@@ -82,18 +83,18 @@
             </div>
 
             <div class="field">
-                <label for="contact_name">Contact Name</label>
-                <input class="input" id="contact_name" name="contact_name" value="{{ old('contact_name', auth()->user()->name) }}" required>
+                <label for="contact_name">User School ID</label>
+                <input class="input" id="contact_name" name="contact_name" value="{{ old('contact_name', $schoolId) }}" required>
             </div>
 
             <div class="field">
                 <label for="contact_phone">Cellphone Number</label>
-                <input class="input" id="contact_phone" name="contact_phone" value="{{ old('contact_phone', auth()->user()->contact_phone) }}" inputmode="tel" autocomplete="tel" required>
+                <input class="input" id="contact_phone" name="contact_phone" value="{{ old('contact_phone') }}" inputmode="tel" autocomplete="tel" required>
             </div>
 
             <div class="field">
                 <label for="contact_email">Contact Email (optional)</label>
-                <input class="input" id="contact_email" type="email" name="contact_email" value="{{ old('contact_email', auth()->user()->email) }}" autocomplete="email">
+                <input class="input" id="contact_email" type="email" name="contact_email" value="{{ old('contact_email') }}" autocomplete="email">
             </div>
 
             <div class="span-2" style="display: flex; gap: 10px; flex-wrap: wrap;">

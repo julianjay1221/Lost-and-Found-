@@ -58,6 +58,21 @@ class FoundItemMatchNotifier
         return $notified;
     }
 
+    public function markMatchingLostReportsFound(ItemReport $foundReport): int
+    {
+        if ($foundReport->type !== ItemReport::TYPE_FOUND || $foundReport->status !== ItemReport::STATUS_APPROVED) {
+            return 0;
+        }
+
+        return $this->matchingLostReports($foundReport)
+            ->where('status', ItemReport::STATUS_APPROVED)
+            ->each(fn (ItemReport $lostReport) => $lostReport->update([
+                'status' => ItemReport::STATUS_FOUND,
+                'matched_report_id' => $foundReport->id,
+            ]))
+            ->count();
+    }
+
     private function smsMessage(ItemReport $lostReport, ItemReport $foundReport): string
     {
         return Str::limit(

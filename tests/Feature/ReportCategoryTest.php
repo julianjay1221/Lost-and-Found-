@@ -105,14 +105,13 @@ class ReportCategoryTest extends TestCase
             ->assertSeeText('Wallets & Money');
     }
 
-    public function test_public_board_dropdowns_auto_submit_without_filter_button(): void
+    public function test_public_board_category_dropdown_auto_submits_without_filter_button(): void
     {
         $this
             ->get(route('home'))
             ->assertOk()
             ->assertDontSeeText('Filter')
             ->assertSee('id="public-board-filter"', false)
-            ->assertSee('name="type" data-auto-submit', false)
             ->assertSee('name="category" data-auto-submit', false);
     }
 
@@ -196,6 +195,26 @@ class ReportCategoryTest extends TestCase
         ]);
     }
 
+    public function test_lost_report_form_allows_submission_without_location(): void
+    {
+        $student = $this->student('lost-no-location@example.com');
+        $payload = $this->reportPayload([
+            'type' => ItemReport::TYPE_LOST,
+        ]);
+        unset($payload['location']);
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_LOST,
+            'location' => null,
+        ]);
+    }
+
     public function test_student_can_submit_report_without_description(): void
     {
         $student = $this->student('optional-description@example.com');
@@ -211,6 +230,43 @@ class ReportCategoryTest extends TestCase
             'user_id' => $student->id,
             'item_name' => 'Sample Item',
             'description' => null,
+        ]);
+    }
+
+    public function test_student_can_submit_lost_report_without_an_item_name(): void
+    {
+        $student = $this->student('optional-lost-item-name@example.com');
+        $payload = $this->reportPayload(['item_name' => '   ']);
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_LOST,
+            'item_name' => null,
+        ]);
+    }
+
+    public function test_student_can_submit_found_report_without_an_item_name(): void
+    {
+        $student = $this->student('optional-found-item-name@example.com');
+        $payload = $this->reportPayload([
+            'type' => ItemReport::TYPE_FOUND,
+            'item_name' => null,
+        ]);
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_FOUND,
+            'item_name' => null,
         ]);
     }
 

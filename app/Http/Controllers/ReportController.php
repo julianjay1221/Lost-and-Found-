@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\ItemCategory;
 use App\Models\ItemReport;
+use App\Models\User;
+use App\Notifications\ItemClaimed;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -39,13 +44,31 @@ class ReportController extends Controller
         $categories = $this->categoryOptions();
 
         $stats = [
-            'approved' => ItemReport::query()->public()->count(),
             'lost' => ItemReport::query()->public()->where('type', ItemReport::TYPE_LOST)->count(),
             'found' => ItemReport::query()->public()->where('type', ItemReport::TYPE_FOUND)->count(),
             'claimed' => ItemReport::query()->claimedOrClosed()->count(),
         ];
+        $publicBoardVersion = ItemReport::query()->public()->max('updated_at');
 
-        return view('reports.index', compact('reports', 'categories', 'stats'));
+        return view('reports.index', compact('reports', 'categories', 'stats', 'publicBoardVersion'));
+    }
+
+    public function publicReportStatus(Request $request): JsonResponse
+    {
+        $ids = collect($request->query('ids', []))
+            ->filter(fn ($id) => filter_var($id, FILTER_VALIDATE_INT) !== false)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->take(12);
+
+        return response()->json([
+            'public_ids' => ItemReport::query()
+                ->public()
+                ->whereKey($ids)
+                ->pluck('id')
+                ->values(),
+            'latest_updated_at' => ItemReport::query()->public()->max('updated_at'),
+        ]);
     }
 
     public function create(Request $request): View
@@ -63,6 +86,7 @@ class ReportController extends Controller
         abort_unless($request->user()->isStudent(), 403);
 
         $request->merge([
+            'item_name' => is_string($request->input('item_name')) ? trim($request->input('item_name')) : $request->input('item_name'),
             'category' => is_string($request->input('category')) ? trim($request->input('category')) : $request->input('category'),
             'category_custom' => is_string($request->input('category_custom')) ? trim($request->input('category_custom')) : $request->input('category_custom'),
             'contact_email' => is_string($request->input('contact_email')) ? trim($request->input('contact_email')) : $request->input('contact_email'),
@@ -121,19 +145,23 @@ class ReportController extends Controller
 
     public function show(Request $request, ItemReport $itemReport): View
     {
+        $claimableLostReport = $request->user()->isStudent()
+            ? $this->claimableLostReportForFound($request->user()->id, $itemReport)
+            : null;
+
         abort_unless(
-            $itemReport->user_id === $request->user()->id || $request->user()->isAdmin(),
+            $itemReport->user_id === $request->user()->id || $request->user()->isAdmin() || $claimableLostReport !== null,
             403
         );
 
         $canSeePotentialMatches = $request->user()->isStudent()
             && $itemReport->user_id === $request->user()->id
             && $itemReport->type === ItemReport::TYPE_LOST
-            && $itemReport->status === ItemReport::STATUS_APPROVED;
+            && in_array($itemReport->status, [ItemReport::STATUS_APPROVED, ItemReport::STATUS_FOUND], true);
 
         $matches = $canSeePotentialMatches ? $this->matchingReports($itemReport) : collect();
 
-        return view('reports.show', compact('itemReport', 'matches', 'canSeePotentialMatches'));
+        return view('reports.show', compact('itemReport', 'matches', 'canSeePotentialMatches', 'claimableLostReport'));
     }
 
     public function claim(Request $request, ItemReport $itemReport): RedirectResponse
@@ -141,13 +169,14 @@ class ReportController extends Controller
         abort_unless($request->user()->isStudent(), 403);
         abort_unless($itemReport->user_id === $request->user()->id, 403);
         abort_unless($itemReport->type === ItemReport::TYPE_LOST, 403);
-        abort_unless($itemReport->status === ItemReport::STATUS_APPROVED, 403);
+        abort_unless(in_array($itemReport->status, [ItemReport::STATUS_APPROVED, ItemReport::STATUS_FOUND], true), 403);
 
         $data = $request->validate([
             'matched_report_id' => ['required', 'integer'],
         ]);
 
         $matchedReport = $this->matchingReportsQuery($itemReport)
+            ->where('status', ItemReport::STATUS_APPROVED)
             ->whereKey($data['matched_report_id'])
             ->first();
 
@@ -155,20 +184,36 @@ class ReportController extends Controller
 
         $claimedAt = now();
 
-        $itemReport->update([
-            'status' => ItemReport::STATUS_CLAIMED,
-            'claimed_at' => $claimedAt,
-            'matched_report_id' => $matchedReport->id,
-        ]);
+        DB::transaction(function () use ($itemReport, $matchedReport, $claimedAt) {
+            $itemReport->update([
+                'status' => ItemReport::STATUS_CLAIMED,
+                'claimed_at' => $claimedAt,
+                'claim_confirmed_at' => null,
+                'matched_report_id' => $matchedReport->id,
+            ]);
 
-        $matchedReport->update([
-            'status' => ItemReport::STATUS_CLAIMED,
-            'claimed_at' => $claimedAt,
-        ]);
+            $matchedReport->update([
+                'status' => ItemReport::STATUS_CLAIMED,
+                'claimed_at' => $claimedAt,
+                'claim_confirmed_at' => null,
+            ]);
+        });
+
+        $itemReport->refresh();
+        $matchedReport->refresh();
+
+        if ($matchedReport->user) {
+            $matchedReport->user->notify(new ItemClaimed($itemReport, $matchedReport));
+        }
+
+        Notification::send(
+            User::query()->where('role', 'admin')->get(),
+            new ItemClaimed($itemReport, $matchedReport)
+        );
 
         return redirect()
             ->route('reports.show', $itemReport)
-            ->with('status', 'Matched item marked as claimed. The finder and admin have been notified.');
+            ->with('status', 'Item successfully claimed. The finder and admin have been notified.');
     }
 
     public function destroy(Request $request, ItemReport $itemReport): RedirectResponse
@@ -202,12 +247,53 @@ class ReportController extends Controller
             ->public()
             ->where('id', '!=', $itemReport->id)
             ->where('type', $itemReport->oppositeType())
+            ->when(
+                $itemReport->type === ItemReport::TYPE_LOST,
+                fn (Builder $query) => $query->where('status', ItemReport::STATUS_APPROVED)
+            )
             ->where(function (Builder $query) use ($itemReport) {
-                $query
-                    ->where('category', $itemReport->category)
-                    ->orWhere('item_name', 'like', '%' . $itemReport->item_name . '%')
-                    ->orWhere('location', 'like', '%' . $itemReport->location . '%');
+                $query->where('category', $itemReport->category);
+
+                if (filled($itemReport->item_name)) {
+                    $query->orWhere('item_name', 'like', '%' . $itemReport->item_name . '%');
+                }
+
+                if (filled($itemReport->location)) {
+                    $query->orWhere('location', 'like', '%' . $itemReport->location . '%');
+                }
             });
+    }
+
+    private function claimableLostReportForFound(int $userId, ItemReport $itemReport): ?ItemReport
+    {
+        if (
+            $itemReport->type !== ItemReport::TYPE_FOUND
+            || $itemReport->status !== ItemReport::STATUS_APPROVED
+            || $itemReport->user_id === $userId
+        ) {
+            return null;
+        }
+
+        return ItemReport::query()
+            ->where('user_id', $userId)
+            ->where('type', ItemReport::TYPE_LOST)
+            ->whereIn('status', [ItemReport::STATUS_APPROVED, ItemReport::STATUS_FOUND])
+            ->where(function (Builder $query) use ($itemReport) {
+                $query->where('matched_report_id', $itemReport->id)
+                    ->orWhere(function (Builder $query) use ($itemReport) {
+                        $query->where('category', $itemReport->category);
+
+                        if (filled($itemReport->item_name)) {
+                            $query->orWhere('item_name', 'like', '%' . $itemReport->item_name . '%');
+                        }
+
+                        if (filled($itemReport->location)) {
+                            $query->orWhere('location', 'like', '%' . $itemReport->location . '%');
+                        }
+                    });
+            })
+            ->latest('updated_at')
+            ->first();
     }
 
     private function categoryOptions(?int $userId = null)

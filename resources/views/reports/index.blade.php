@@ -7,7 +7,7 @@
         <div>
             <p class="eyebrow">Public Homepage</p>
             <h1>Lost & Found Board</h1>
-            <p class="muted">Approved reports are visible here for searching, matching, and return.</p>
+            <p class="muted">Active lost items, approved found items, and admin-confirmed claimed items are visible here.</p>
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             @auth
@@ -38,7 +38,7 @@
         </article>
     </section>
 
-    <form class="toolbar" method="GET" action="{{ route('home') }}" id="public-board-filter">
+    <form class="toolbar" method="GET" action="{{ route('home') }}" id="public-board-filter" data-public-board-version="{{ $publicBoardVersion }}">
         <input class="input" type="search" name="q" value="{{ request('q') }}" placeholder="Search item, place, or note">
         <select class="select" name="type" data-auto-submit>
             <option value="">All Types</option>
@@ -57,7 +57,7 @@
     @if ($reports->count())
         <section class="report-grid">
             @foreach ($reports as $report)
-            <article class="report-card">
+            <article class="report-card" data-report-id="{{ $report->id }}" data-public-board-version="{{ $publicBoardVersion }}">
                 @if ($report->photoUrl())
                     <img class="report-photo" src="{{ $report->photoUrl() }}" alt="{{ $report->item_name }}">
                 @else
@@ -67,6 +67,9 @@
                 <div class="report-body">
                     <div class="report-meta">
                         <span class="badge badge-{{ $report->type }}">{{ $report->type }}</span>
+                        @if ($report->status === 'claimed')
+                            <span class="badge badge-claimed">Claimed</span>
+                        @endif
                         <span class="badge badge-category">{{ $report->category }}</span>
                     </div>
                     <h3>{{ $report->item_name }}</h3>
@@ -104,5 +107,33 @@
         document.querySelectorAll('#public-board-filter [data-auto-submit]').forEach((field) => {
             field.addEventListener('change', () => field.form.submit());
         });
+
+        const visibleReportIds = [...document.querySelectorAll('[data-report-id]')]
+            .map((card) => card.dataset.reportId);
+        const publicBoardVersion = document.querySelector('[data-public-board-version]')?.dataset.publicBoardVersion ?? '';
+
+        const refreshPublicBoard = async () => {
+            const params = new URLSearchParams();
+            visibleReportIds.forEach((id) => params.append('ids[]', id));
+
+            try {
+                const response = await fetch(`{{ route('reports.public-status') }}?${params.toString()}`, {
+                    headers: { Accept: 'application/json' },
+                });
+
+                if (!response.ok) return;
+
+                const { public_ids: publicIds, latest_updated_at: latestUpdatedAt } = await response.json();
+                const publicIdSet = new Set(publicIds.map(String));
+
+                if (visibleReportIds.some((id) => !publicIdSet.has(id)) || latestUpdatedAt !== publicBoardVersion) {
+                    window.location.reload();
+                }
+            } catch (_) {
+                // A temporary connection issue should not affect use of the board.
+            }
+        };
+
+        window.setInterval(refreshPublicBoard, 5000);
     </script>
 @endsection

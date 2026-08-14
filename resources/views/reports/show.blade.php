@@ -68,25 +68,38 @@
 
     </section>
 
+    @if ($claimableLostReport)
+        <section class="panel" style="margin-bottom: 18px;">
+            <h2>Matched Lost Report</h2>
+            <p class="muted">This found item may match your lost report: {{ $claimableLostReport->item_name }}.</p>
+            <form method="POST" action="{{ route('reports.claim', $claimableLostReport) }}" style="margin-top: 12px; display: flex; justify-content: flex-start;">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="matched_report_id" value="{{ $itemReport->id }}">
+                <button class="button" type="submit">Claim Object</button>
+            </form>
+        </section>
+    @endif
+
     @if ($canSeePotentialMatches)
         <section class="panel">
             <h2>Potential Matches</h2>
             <div class="report-grid">
                 @forelse ($matches as $match)
-                    <article class="report-card">
+                    <article class="report-card" style="display: flex; flex-direction: column;">
                         @if ($match->photoUrl())
                             <img class="report-photo" src="{{ $match->photoUrl() }}" alt="{{ $match->item_name }}">
                         @else
                             <div class="photo-placeholder">{{ strtoupper(substr($match->type, 0, 1)) }}</div>
                         @endif
-                        <div class="report-body">
+                        <div class="report-body" style="display: flex; flex-direction: column; flex: 1;">
                             <div class="report-meta">
                                 <span class="badge badge-{{ $match->type }}">{{ $match->type }}</span>
                                 <span class="badge badge-category">{{ $match->category }}</span>
                             </div>
                             <h3>{{ $match->item_name }}</h3>
                             <p>{{ \Illuminate\Support\Str::limit($match->description, 120) }}</p>
-                            <form method="POST" action="{{ route('reports.claim', $itemReport) }}" style="margin-top: 12px;">
+                            <form method="POST" action="{{ route('reports.claim', $itemReport) }}" style="margin-top: auto; display: flex; justify-content: flex-start;">
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="matched_report_id" value="{{ $match->id }}">
