@@ -81,12 +81,7 @@ class ReportController extends Controller
                 Rule::notIn([self::CUSTOM_CATEGORY_VALUE]),
             ],
             'happened_at' => ['nullable', 'date'],
-            'location' => [
-                Rule::requiredIf($request->input('type') !== ItemReport::TYPE_FOUND),
-                'nullable',
-                'string',
-                'max:180',
-            ],
+            'location' => ['nullable', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:1000'],
             'contact_name' => ['required', 'string', 'max:120'],
             'contact_phone' => ['required', 'string', 'max:50'],
