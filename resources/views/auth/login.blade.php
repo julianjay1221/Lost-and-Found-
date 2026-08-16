@@ -25,8 +25,8 @@
             <input type="hidden" name="side" value="{{ $selectedSide }}">
 
             <div class="field span-2">
-                <label for="user_id">User ID</label>
-                <input class="input" id="user_id" type="text" name="user_id" value="{{ old('user_id', old('email')) }}" required autofocus autocomplete="new-password" spellcheck="false" autocapitalize="none">
+                <label for="user_id">{{ $selectedSide === 'admin' ? 'Admin ID' : 'School ID' }}</label>
+                <input class="input" id="user_id" type="text" name="user_id" value="{{ old('user_id', old('email')) }}" required autofocus autocomplete="new-password" spellcheck="false" autocapitalize="none" data-school-id-input>
             </div>
 
             <div class="field span-2">

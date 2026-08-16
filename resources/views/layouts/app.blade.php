@@ -7,7 +7,7 @@
     <style>
         :root { --green:#005b35; --green-2:#087a47; --ink:#102c20; --muted:#5f6c65; --line:#e5ebe6; --paper:#fff; --wash:#f7f9f7; --yellow:#f3cf2e; --shadow:0 5px 18px rgba(20,57,36,.08); }
         * { box-sizing:border-box; } body { margin:0; min-height:100vh; background:var(--wash); color:var(--ink); font:14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; } a { color:inherit; text-decoration:none; } button,input,select,textarea { font:inherit; }
-        .topbar { height:76px; background:linear-gradient(105deg,#075d38,#004b2c 68%,#003d25); color:#fff; box-shadow:0 2px 10px rgba(0,40,20,.18); } .nav { height:100%; display:flex; align-items:center; justify-content:space-between; gap:22px; padding:0 30px; } .brand { display:flex; align-items:center; gap:13px; } .brand-mark,.avatar { display:grid; place-items:center; border-radius:50%; flex:0 0 auto; } .brand-mark { width:53px; height:53px; overflow:hidden; background:#fff; } .brand-mark img { display:block; width:100%; height:100%; object-fit:contain; } .brand-text strong,.brand-text span { display:block; } .brand-text strong { font-size:17px; letter-spacing:.1px; } .brand-text span { color:var(--yellow); font-size:14px; font-weight:600; } .nav-menu { font-size:25px; color:#fff; margin-right:auto; } .user-menu { display:flex; align-items:center; gap:11px; } .bell { position:relative; font-size:22px; } .bell b { position:absolute; top:-7px; right:-8px; display:grid; place-items:center; width:17px; height:17px; border-radius:99px; background:#78b82a; font-size:10px; } .avatar { width:39px; height:39px; color:var(--green); background:#fff; font-size:20px; } .user-name { font-weight:700; } .user-role { display:block; opacity:.82; font-size:12px; }
+        .topbar { height:76px; background:linear-gradient(105deg,#075d38,#004b2c 68%,#003d25); color:#fff; box-shadow:0 2px 10px rgba(0,40,20,.18); } .nav { height:100%; display:flex; align-items:center; justify-content:space-between; gap:22px; padding:0 30px; } .brand { display:flex; align-items:center; gap:13px; } .brand-mark,.avatar { display:grid; place-items:center; border-radius:50%; flex:0 0 auto; } .brand-mark { width:53px; height:53px; overflow:hidden; background:#fff; } .brand-mark img { display:block; width:100%; height:100%; object-fit:contain; } .brand-text strong,.brand-text span { display:block; } .brand-text strong { font-size:17px; letter-spacing:.1px; } .brand-text span { color:var(--yellow); font-size:14px; font-weight:600; } .nav-menu { font-size:25px; color:#fff; margin-right:auto; } .user-menu { display:flex; align-items:center; gap:11px; } .bell { position:relative; font-size:22px; } .bell b { position:absolute; top:-7px; right:-8px; display:grid; place-items:center; width:17px; height:17px; border-radius:99px; background:#78b82a; font-size:10px; } .avatar { width:39px; height:39px; overflow:hidden; color:var(--green); background:#fff; font-size:20px; } .avatar img { width:100%; height:100%; object-fit:cover; } .user-name { font-weight:700; } .user-role { display:block; opacity:.82; font-size:12px; }
         .app-shell { display:grid; grid-template-columns:308px minmax(0,1fr); min-height:calc(100vh - 76px); } .sidebar { display:flex; flex-direction:column; padding:25px 18px 28px; background:#fff; border-right:1px solid var(--line); } .side-brand { display:flex; align-items:center; gap:9px; padding:0 12px 22px; border-bottom:1px solid var(--line); } .side-brand .brand-mark { width:48px; height:48px; font-size:22px; } .side-brand strong,.side-brand small { display:block; } .side-brand strong { font-size:14px; } .side-brand small { color:var(--green); font-weight:600; } .side-label { margin:19px 17px 7px; color:#536159; font-size:10px; font-weight:800; letter-spacing:.03em; } .side-link { display:flex; align-items:center; gap:15px; min-height:44px; margin:2px 0; padding:10px 17px; border-radius:10px; color:#36433d; font-weight:600; } .side-link i { width:24px; color:var(--green); font-size:20px; font-style:normal; text-align:center; } .side-link.active,.side-link:hover { color:var(--green); background:#eaf5ed; } .side-link.active { border-left:4px solid #087842; border-radius:0 10px 10px 0; padding-left:13px; } .side-promo { position:relative; overflow:hidden; margin-top:auto; min-height:167px; padding:19px 17px; color:#fff; border-radius:10px; background:linear-gradient(135deg,#02663c,#004d2e); } .side-promo::after { position:absolute; right:-7px; bottom:-25px; content:'🎒'; font-size:96px; opacity:.45; } .side-promo strong,.side-promo span { position:relative; z-index:1; display:block; } .side-promo strong { font-size:17px; line-height:1.4; } .side-promo span { width:145px; margin-top:4px; opacity:.92; }
         .page { width:100%; max-width:1280px; margin:0 auto; padding:27px 26px 32px; } .notice,.error-box { margin-bottom:16px; padding:12px 14px; border:1px solid; border-radius:8px; } .notice { color:#075d35; background:#e7f7ed; border-color:#bde4ca; } .error-box { color:#9f2529; background:#fff0f1; border-color:#f1c3c7; } .error-box ul { margin:0; padding-left:20px; }
         .welcome { position:relative; overflow:hidden; min-height:112px; margin-bottom:23px; padding:25px 28px; border:1px solid var(--line); border-radius:12px; background:linear-gradient(100deg,#fff 0%,#fcfdfa 62%,#edf5e6); box-shadow:var(--shadow); } .welcome::after { position:absolute; right:7%; bottom:-13px; content:'🏛️'; font-size:112px; opacity:.28; filter:saturate(.6); } .welcome h1 { margin:0 0 4px; font-size:20px; } .welcome p { margin:0; color:#435049; }
@@ -18,14 +18,14 @@
         .live-stack { position:fixed; right:18px; bottom:18px; z-index:50; display:grid; gap:10px; width:min(380px,calc(100% - 32px)); } .live-notification { padding:14px; border-left:4px solid var(--green); border-radius:8px; background:#fff; box-shadow:var(--shadow); } .live-notification strong,.live-notification p { margin:0; }
         @media (max-width:1080px) { .app-shell { grid-template-columns:230px minmax(0,1fr); } .sidebar { padding:20px 12px; } .dashboard-grid { grid-template-columns:1fr; } .side-column { grid-template-columns:1fr 1fr; } .side-promo { display:none; } .report-row { grid-template-columns:70px minmax(150px,1fr) 85px; } .row-status { display:none; } }
         @media (max-width:760px) { .topbar { height:auto; } .nav { padding:11px 16px; } .brand-text strong { font-size:14px; } .brand-mark { width:42px; height:42px; font-size:19px; } .nav-menu,.user-name,.user-role { display:none; } .app-shell { display:block; } .sidebar { display:none; } .page { padding:18px 14px; } .stats-grid { grid-template-columns:repeat(2,1fr); gap:10px; } .stat-card { min-height:84px; padding:11px; gap:9px; } .stat-icon { width:38px; height:38px; font-size:18px; } .stat-card strong { font-size:20px; } .welcome { min-height:100px; padding:19px; } .welcome::after { right:-8px; font-size:82px; } .side-column { grid-template-columns:1fr; } .report-row { grid-template-columns:63px minmax(0,1fr); padding:9px 12px; } .row-photo,.row-placeholder { width:58px; height:58px; } .report-by { display:none; } .status-filters { overflow:auto; padding-left:12px; } .panel-head { padding-left:13px; padding-right:13px; } .toolbar,.form-grid,.report-grid,.detail-list { grid-template-columns:1fr; } .span-2 { grid-column:span 1; } }
-        .password-field { position:relative; } .password-field .input { padding-right:46px; } .password-toggle { position:absolute; top:50%; right:7px; display:grid; place-items:center; width:34px; height:34px; padding:0; border:0; border-radius:50%; color:#087a47; background:transparent; cursor:pointer; transform:translateY(-50%); transition:background .16s ease,transform .16s ease; } .password-toggle:hover { background:#e8f5ed; transform:translateY(-50%) scale(1.05); } .password-toggle:focus-visible { outline:2px solid #087a47; outline-offset:2px; }
+        .password-field { position:relative; } .password-field .input { padding-right:46px; } .password-field .input::-ms-reveal,.password-field .input::-ms-clear { display:none; } .password-toggle { position:absolute; top:50%; right:7px; display:none; place-items:center; width:34px; height:34px; padding:0; border:0; border-radius:50%; color:#087a47; background:transparent; cursor:pointer; transform:translateY(-50%); transition:background .16s ease,transform .16s ease; } .password-toggle.is-visible { display:grid; } .password-toggle:hover { background:#e8f5ed; transform:translateY(-50%) scale(1.05); } .password-toggle:focus-visible { outline:2px solid #087a47; outline-offset:2px; } .password-strength { display:grid; gap:7px; margin-top:1px; } .password-strength[hidden] { display:none; } .password-strength-head { display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--muted); font-size:12px; font-weight:700; } .password-strength-head strong { font-size:12px; } .password-strength-track { overflow:hidden; height:7px; border-radius:99px; background:#e8eee9; } .password-strength-track span { display:block; width:0; height:100%; border-radius:inherit; background:#d94141; transition:width .18s ease,background .18s ease; } .password-strength.is-weak .password-strength-head strong { color:#b4232e; } .password-strength.is-medium .password-strength-head strong { color:#b56a00; } .password-strength.is-strong .password-strength-head strong { color:#087a47; } .password-strength.is-weak .password-strength-track span { width:33%; background:#d94141; } .password-strength.is-medium .password-strength-track span { width:66%; background:#e3a21a; } .password-strength.is-strong .password-strength-track span { width:100%; background:#087a47; }
     </style>
 </head>
 <body>
 @auth
     @if(auth()->user()->isStudent())
-        <header class="topbar"><nav class="nav"><a class="brand" href="{{ route('student.dashboard') }}"><span class="brand-mark"><img src="{{ asset('images/isu-logo.png') }}" alt="Isabela State University logo"></span><span class="brand-text"><strong>ISABELA STATE UNIVERSITY</strong><span>Lost &amp; Found System</span></span></a><div class="user-menu"><span class="bell">♧<b>3</b></span><span class="avatar">♙</span><span><span class="user-name">{{ auth()->user()->name }}</span><span class="user-role">Student</span></span></div></nav></header>
-        <div class="app-shell"><aside class="sidebar"><a class="side-brand" href="{{ route('student.dashboard') }}"><span class="brand-mark"><img src="{{ asset('images/isu-logo.png') }}" alt="Isabela State University logo"></span><span><strong>ISABELA STATE UNIVERSITY</strong><small>Lost &amp; Found System</small></span></a><a class="side-link {{ request()->routeIs('student.dashboard') ? 'active' : '' }}" href="{{ route('student.dashboard') }}"><i>⌂</i>Dashboard</a><a class="side-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><i>⌕</i>Public Homepage</a><p class="side-label">REPORTS</p><a class="side-link" href="{{ route('reports.create',['type'=>'lost']) }}"><i>➤</i>Report Lost Item</a><a class="side-link" href="{{ route('reports.create',['type'=>'found']) }}"><i>⊕</i>Report Found Item</a><a class="side-link" href="{{ route('student.dashboard') }}#my-reports"><i>▤</i>My Reports</a><p class="side-label">SEARCH</p><a class="side-link" href="{{ route('home',['type'=>'found']) }}"><i>⌕</i>Browse Found Items</a><a class="side-link" href="{{ route('home') }}"><i>⌕</i>Search Items</a><p class="side-label">ACCOUNT</p><a class="side-link" href="{{ route('student.dashboard') }}"><i>♙</i>Profile</a><a class="side-link" href="{{ route('student.dashboard') }}"><i>♧</i>Notifications</a><form method="POST" action="{{ route('logout') }}">@csrf<button class="side-link" style="width:100%;border:0;background:none;cursor:pointer" type="submit"><i>↪</i>Logout</button></form></aside>
+        <header class="topbar"><nav class="nav"><a class="brand" href="{{ route('student.dashboard') }}"><span class="brand-mark"><img src="{{ asset('images/isu-logo.png') }}" alt="Isabela State University logo"></span><span class="brand-text"><strong>ISABELA STATE UNIVERSITY</strong><span>Lost &amp; Found System</span></span></a><div class="user-menu"><span class="bell">♧<b>3</b></span><span class="avatar">@if(auth()->user()->profile_photo_path)<img src="{{ asset(auth()->user()->profile_photo_path) }}" alt="Profile photo">@else♙@endif</span><span><span class="user-name">{{ auth()->user()->name }}</span><span class="user-role">Student</span></span></div></nav></header>
+        <div class="app-shell"><aside class="sidebar"><a class="side-brand" href="{{ route('student.dashboard') }}"><span class="brand-mark"><img src="{{ asset('images/isu-logo.png') }}" alt="Isabela State University logo"></span><span><strong>ISABELA STATE UNIVERSITY</strong><small>Lost &amp; Found System</small></span></a><a class="side-link {{ request()->routeIs('student.dashboard') ? 'active' : '' }}" href="{{ route('student.dashboard') }}"><i>⌂</i>Dashboard</a><a class="side-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><i>⌕</i>Public Homepage</a><p class="side-label">REPORTS</p><a class="side-link" href="{{ route('reports.create',['type'=>'lost']) }}"><i>➤</i>Report Lost Item</a><a class="side-link" href="{{ route('reports.create',['type'=>'found']) }}"><i>⊕</i>Report Found Item</a><a class="side-link" href="{{ route('student.dashboard') }}#my-reports"><i>▤</i>My Reports</a><p class="side-label">SEARCH</p><a class="side-link" href="{{ route('home') }}"><i>⌕</i>Search Items</a><p class="side-label">ACCOUNT</p><a class="side-link {{ request()->routeIs('student.profile') ? 'active' : '' }}" href="{{ route('student.profile') }}"><i>♙</i>Profile</a><form method="POST" action="{{ route('logout') }}">@csrf<button class="side-link" style="width:100%;border:0;background:none;cursor:pointer" type="submit"><i>↪</i>Logout</button></form></aside>
             <main class="page">@include('layouts.partials.messages') @yield('content')</main></div>
         <div class="live-stack" id="live-notifications" aria-live="polite" aria-label="Notifications"></div>
         <script>
@@ -73,18 +73,98 @@
             const toggle = field.querySelector('.password-toggle');
             if (!input || !toggle) return;
 
+            const eyeIcon = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                    <path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            `;
+            const eyeOffIcon = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 9.5 6.5 9.5 6.5a17.83 17.83 0 0 1-2.08 2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14.12 14.12A3 3 0 0 1 9.88 9.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6.61 6.61A17.3 17.3 0 0 0 2.5 10.5S6 17 12 17a9.34 9.34 0 0 0 4.28-1.05" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+
             const render = () => {
                 const visible = input.type === 'text';
-                toggle.textContent = visible ? '🙈' : '👁';
+                const hasValue = input.value.length > 0;
+                toggle.innerHTML = visible ? eyeOffIcon : eyeIcon;
+                toggle.classList.toggle('is-visible', hasValue);
                 toggle.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
                 toggle.setAttribute('aria-pressed', String(visible));
             };
 
+            input.addEventListener('input', render);
             toggle.addEventListener('click', () => {
                 input.type = input.type === 'password' ? 'text' : 'password';
                 render();
             });
             render();
+        });
+
+        document.querySelectorAll('[data-school-id-input]').forEach((input) => {
+            const formatSchoolId = (event = null) => {
+                if (/[^0-9-]/.test(input.value)) {
+                    return;
+                }
+
+                const isDeleting = event?.inputType?.startsWith('delete') ?? false;
+                const digits = input.value.replace(/\D/g, '');
+                const shouldDelayHyphen = isDeleting && digits.length <= 2 && !input.value.includes('-');
+                const formatted = digits.length >= 2
+                    && !shouldDelayHyphen
+                    ? `${digits.slice(0, 2)}-${digits.slice(2)}`
+                    : digits;
+
+                if (input.value !== formatted) {
+                    input.value = formatted;
+                }
+            };
+
+            input.addEventListener('input', formatSchoolId);
+            formatSchoolId();
+        });
+
+        document.querySelectorAll('[data-password-strength-input]').forEach((input) => {
+            const field = input.closest('.field');
+            const indicator = field?.querySelector('[data-password-strength]');
+            const label = indicator?.querySelector('[data-password-strength-label]');
+
+            if (!indicator || !label) {
+                return;
+            }
+
+            const requirements = [
+                (value) => value.length >= 8,
+                (value) => /[A-Za-z]/.test(value),
+                (value) => /\d/.test(value),
+                (value) => /[^A-Za-z0-9]/.test(value),
+            ];
+
+            const renderStrength = () => {
+                const value = input.value;
+
+                if (!value) {
+                    indicator.hidden = true;
+                    indicator.classList.remove('is-weak', 'is-medium', 'is-strong');
+                    label.textContent = '';
+                    return;
+                }
+
+                const score = requirements.filter((passes) => passes(value)).length;
+                const strength = score >= 4 ? 'strong' : score >= 3 ? 'medium' : 'weak';
+
+                indicator.hidden = false;
+                indicator.classList.remove('is-weak', 'is-medium', 'is-strong');
+                indicator.classList.add(`is-${strength}`);
+                label.textContent = strength.charAt(0).toUpperCase() + strength.slice(1);
+            };
+
+            input.addEventListener('input', renderStrength);
+            renderStrength();
         });
     </script>
 </body>

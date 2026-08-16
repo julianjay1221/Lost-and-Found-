@@ -11,8 +11,8 @@
             @csrf
 
             <div class="field span-2">
-                <label for="user_id">User ID</label>
-                <input class="input" id="user_id" type="text" name="user_id" value="{{ old('user_id') }}" required autofocus>
+                <label for="user_id">School ID</label>
+                <input class="input" id="user_id" type="text" name="user_id" value="{{ old('user_id') }}" required autofocus data-school-id-input>
             </div>
 
             <div class="field span-2">
@@ -23,8 +23,17 @@
             <div class="field">
                 <label for="password">Password</label>
                 <div class="password-field">
-                    <input class="input" id="password" type="password" name="password" required autocomplete="new-password" spellcheck="false">
+                    <input class="input" id="password" type="password" name="password" required autocomplete="new-password" spellcheck="false" data-password-strength-input>
                     <button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false">👁️</button>
+                </div>
+                <div class="password-strength" data-password-strength hidden>
+                    <div class="password-strength-head">
+                        <span>Password strength</span>
+                        <strong data-password-strength-label></strong>
+                    </div>
+                    <div class="password-strength-track" aria-hidden="true">
+                        <span data-password-strength-bar></span>
+                    </div>
                 </div>
             </div>
 

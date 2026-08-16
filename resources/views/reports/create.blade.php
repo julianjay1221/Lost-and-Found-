@@ -7,6 +7,7 @@
         $categories = collect($categories ?? []);
         $customCategoryValue = $customCategoryValue ?? '__custom_category__';
         $selectedType = old('type', request('type', 'lost'));
+        $selectedType = in_array($selectedType, ['lost', 'found'], true) ? $selectedType : 'lost';
         $oldCategory = old('category');
         $usesCustomCategory = $oldCategory === $customCategoryValue || ($oldCategory && ! $categories->contains($oldCategory));
         $customCategoryName = old('category_custom', $usesCustomCategory && $oldCategory !== $customCategoryValue ? $oldCategory : '');
@@ -26,19 +27,7 @@
         <form method="POST" action="{{ route('reports.store') }}" enctype="multipart/form-data" class="form-grid">
             @csrf
 
-            <div class="field span-2">
-                <span class="radio-label">Report Type</span>
-                <div class="segmented">
-                    <label class="segment">
-                        <input type="radio" name="type" value="lost" @checked($selectedType === 'lost')>
-                        <span>Lost Item</span>
-                    </label>
-                    <label class="segment">
-                        <input type="radio" name="type" value="found" @checked($selectedType === 'found')>
-                        <span>Found Item</span>
-                    </label>
-                </div>
-            </div>
+            <input type="hidden" name="type" value="{{ $selectedType }}">
 
             <div class="field">
                 <label for="item_name">Item Name</label>
@@ -83,8 +72,8 @@
             </div>
 
             <div class="field">
-                <label for="contact_name">User School ID</label>
-                <input class="input" id="contact_name" name="contact_name" value="{{ old('contact_name', $schoolId) }}" required>
+                <label for="contact_name">School ID</label>
+                <input class="input" id="contact_name" name="contact_name" value="{{ old('contact_name', $schoolId) }}" required data-school-id-input>
             </div>
 
             <div class="field">

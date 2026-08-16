@@ -64,8 +64,8 @@ class AuthAccountTypeTest extends TestCase
                 'user_id' => 'S12347',
                 'email' => 'student@example.com',
                 'role' => 'admin',
-                'password' => 'StrongP@ss123',
-                'password_confirmation' => 'StrongP@ss123',
+                'password' => 'Abc@1234',
+                'password_confirmation' => 'Abc@1234',
             ])
             ->assertRedirect(route('student.dashboard'));
 
@@ -83,8 +83,8 @@ class AuthAccountTypeTest extends TestCase
             ->post(route('register'), [
                 'user_id' => 'S12346',
                 'email' => 'not-an-email',
-                'password' => 'StrongP@ss123',
-                'password_confirmation' => 'StrongP@ss123',
+                'password' => 'Abc@1234',
+                'password_confirmation' => 'Abc@1234',
             ])
             ->assertSessionHasErrors('email');
 
@@ -97,8 +97,8 @@ class AuthAccountTypeTest extends TestCase
             ->post(route('register'), [
                 'user_id' => 'S12348',
                 'email' => 'missing-phone@example.com',
-                'password' => 'StrongP@ss123',
-                'password_confirmation' => 'StrongP@ss123',
+                'password' => 'Abc@1234',
+                'password_confirmation' => 'Abc@1234',
             ])
             ->assertRedirect(route('student.dashboard'));
 

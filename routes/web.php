@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentNotificationController;
+use App\Http\Controllers\StudentProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [ReportController::class, 'index'])->name('home');
@@ -23,6 +24,8 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 Route::middleware('auth')->group(function () {
     Route::get('/student', StudentDashboardController::class)->name('student.dashboard');
+    Route::get('/student/profile', [StudentProfileController::class, 'edit'])->name('student.profile');
+    Route::patch('/student/profile', [StudentProfileController::class, 'update'])->name('student.profile.update');
     Route::get('/student/notifications/unread', [StudentNotificationController::class, 'unread'])->name('student.notifications.unread');
     Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
