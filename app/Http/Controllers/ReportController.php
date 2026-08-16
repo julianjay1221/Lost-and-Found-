@@ -104,13 +104,15 @@ class ReportController extends Controller
                 'max:80',
                 Rule::notIn([self::CUSTOM_CATEGORY_VALUE]),
             ],
-            'happened_at' => ['nullable', 'date'],
+            'happened_at' => ['nullable', 'date', 'before_or_equal:now'],
             'location' => ['nullable', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:1000'],
             'contact_name' => ['required', 'string', 'max:120'],
             'contact_phone' => ['required', 'string', 'max:50'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'photo' => ['nullable', 'image', 'max:4096'],
+        ], [
+            'happened_at.before_or_equal' => 'Invalid date/time',
         ]);
 
         if ($request->hasFile('photo')) {

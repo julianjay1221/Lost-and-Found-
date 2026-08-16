@@ -3,6 +3,67 @@
 @section('title', 'Admin Dashboard')
 
 @section('content')
+    <style>
+        .admin-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 18px;
+            align-items: start;
+            padding: 18px;
+        }
+
+        .admin-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            max-width: 100%;
+        }
+
+        .admin-actions form {
+            display: flex;
+            margin: 0;
+        }
+
+        .admin-actions .button,
+        .admin-actions .ghost-button,
+        .admin-actions .danger-button {
+            min-width: 108px;
+            min-height: 38px;
+            padding: 0 16px;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 920px) {
+            .admin-row {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-actions {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .admin-actions {
+                gap: 8px;
+            }
+
+            .admin-actions form,
+            .admin-actions > .ghost-button {
+                flex: 1 1 128px;
+            }
+
+            .admin-actions .button,
+            .admin-actions .ghost-button,
+            .admin-actions .danger-button {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+    </style>
+
     <section class="page-head">
         <div>
             <p class="eyebrow">Admin Side</p>
@@ -51,7 +112,16 @@
     </section>
 
     @php
-        $statuses = ['pending', 'approved', 'found', 'claimed', 'closed', 'archived', 'rejected', 'blocked'];
+        $statuses = [
+            'pending' => 'Pending',
+            'approved' => 'Approved',
+            'found' => 'Found',
+            'claimed' => 'Claimed',
+            'closed' => 'Closed',
+            'archived' => 'Archived',
+            'rejected' => 'Rejected',
+            'blocked' => 'Spam',
+        ];
     @endphp
 
     @if ($claimAlerts->isNotEmpty())
@@ -60,7 +130,7 @@
 
             <div class="admin-list">
                 @foreach ($claimAlerts as $alert)
-                    <article class="report-card" style="padding: 16px; box-shadow: none;">
+                    <article class="report-card" style="padding: 16px; box-shadow: none;" data-admin-report-row data-report-id="{{ $alert->id }}" data-report-status="{{ $alert->status }}">
                         <div class="report-meta">
                             <span class="badge badge-claimed">Claimed Match</span>
                             <span class="badge badge-category">{{ $alert->category }}</span>
@@ -74,17 +144,17 @@
                         <p class="muted">Claimed: {{ $alert->claimed_at?->format('M d, Y h:i A') ?? 'Recently' }}</p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <a class="button" href="{{ route('reports.show', $alert) }}">Review Claimed Report</a>
-                            <form method="POST" action="{{ route('admin.reports.confirm-claim', $alert) }}">
+                            <form method="POST" action="{{ route('admin.reports.confirm-claim', $alert) }}" data-admin-action data-target-status="claimed">
                                 @csrf
                                 @method('PATCH')
                                 <button class="button" type="submit">Confirm Claim</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.reports.close', $alert) }}">
+                            <form method="POST" action="{{ route('admin.reports.close', $alert) }}" data-admin-action data-target-status="closed">
                                 @csrf
                                 @method('PATCH')
                                 <button class="button" type="submit">Close History</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.reports.archive', $alert) }}" onsubmit="return confirm('Move this claimed report to archive?');">
+                            <form method="POST" action="{{ route('admin.reports.archive', $alert) }}" onsubmit="return confirm('Move this claimed report to archive?');" data-admin-action data-target-status="archived">
                                 @csrf
                                 @method('PATCH')
                                 <button class="danger-button" type="submit">Move to Archive</button>
@@ -99,16 +169,16 @@
 
     <nav class="status-filters" aria-label="Status filters">
         <a class="{{ request('status') ? 'ghost-button' : 'button' }}" href="{{ route('admin.dashboard') }}">All</a>
-        @foreach ($statuses as $status)
+        @foreach ($statuses as $status => $label)
             <a class="{{ request('status') === $status ? 'button' : 'ghost-button' }}" href="{{ route('admin.dashboard', ['status' => $status]) }}">
-                {{ ucfirst($status) }}
+                {{ $label }}
             </a>
         @endforeach
     </nav>
 
-    <section class="admin-list">
+    <section class="admin-list" data-admin-report-list>
         @forelse ($reports as $report)
-            <article class="panel admin-row">
+            <article class="panel admin-row" data-admin-report-row data-report-id="{{ $report->id }}" data-report-status="{{ $report->status }}">
                 <div>
                     <div class="report-meta">
                         <span class="badge badge-{{ $report->type }}">{{ $report->type }}</span>
@@ -166,7 +236,7 @@
 
                 <div class="admin-actions">
                     @if (! in_array($report->status, ['approved', 'archived'], true))
-                        <form method="POST" action="{{ route('admin.reports.approve', $report) }}">
+                        <form method="POST" action="{{ route('admin.reports.approve', $report) }}" data-admin-action data-target-status="approved">
                             @csrf
                             @method('PATCH')
                             <button class="button" type="submit">Approve</button>
@@ -174,7 +244,7 @@
                     @endif
 
                     @if (! in_array($report->status, ['rejected', 'claimed', 'closed', 'archived'], true))
-                        <form method="POST" action="{{ route('admin.reports.reject', $report) }}">
+                        <form method="POST" action="{{ route('admin.reports.reject', $report) }}" data-admin-action data-target-status="rejected">
                             @csrf
                             @method('PATCH')
                             <button class="ghost-button" type="submit">Reject</button>
@@ -182,7 +252,7 @@
                     @endif
 
                     @if (! in_array($report->status, ['blocked', 'archived'], true))
-                        <form method="POST" action="{{ route('admin.reports.block', $report) }}" onsubmit="return confirm('Remove this spam report from admin history?');">
+                        <form method="POST" action="{{ route('admin.reports.block', $report) }}" onsubmit="return confirm('Move this report to the spam tab?');" data-admin-action data-target-status="blocked">
                             @csrf
                             @method('PATCH')
                             <button class="danger-button" type="submit">Remove Spam</button>
@@ -191,14 +261,14 @@
 
                     @if (in_array($report->status, ['found', 'claimed'], true))
                         @if ($report->type === 'lost' && $report->status === 'claimed' && ! $report->claim_confirmed_at)
-                            <form method="POST" action="{{ route('admin.reports.confirm-claim', $report) }}">
+                            <form method="POST" action="{{ route('admin.reports.confirm-claim', $report) }}" data-admin-action data-target-status="claimed">
                                 @csrf
                                 @method('PATCH')
                                 <button class="button" type="submit">Confirm Claim</button>
                             </form>
                         @endif
 
-                        <form method="POST" action="{{ route('admin.reports.close', $report) }}">
+                        <form method="POST" action="{{ route('admin.reports.close', $report) }}" data-admin-action data-target-status="closed">
                             @csrf
                             @method('PATCH')
                             <button class="button" type="submit">Close History</button>
@@ -206,7 +276,7 @@
                     @endif
 
                     @if (in_array($report->status, ['found', 'claimed', 'closed'], true))
-                        <form method="POST" action="{{ route('admin.reports.archive', $report) }}" onsubmit="return confirm('Move this claimed report to archive?');">
+                        <form method="POST" action="{{ route('admin.reports.archive', $report) }}" onsubmit="return confirm('Move this claimed report to archive?');" data-admin-action data-target-status="archived">
                             @csrf
                             @method('PATCH')
                             <button class="danger-button" type="submit">Move to Archive</button>
@@ -241,4 +311,117 @@
             @endif
         </nav>
     @endif
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dashboardUrl = @json(route('admin.dashboard'));
+
+            const showToast = (message) => {
+                let toast = document.querySelector('[data-admin-toast]');
+
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.dataset.adminToast = '';
+                    toast.style.position = 'fixed';
+                    toast.style.right = '24px';
+                    toast.style.bottom = '24px';
+                    toast.style.zIndex = '50';
+                    toast.style.maxWidth = '320px';
+                    toast.style.padding = '12px 16px';
+                    toast.style.borderRadius = '8px';
+                    toast.style.color = '#fff';
+                    toast.style.background = '#087a47';
+                    toast.style.boxShadow = '0 12px 30px rgba(20,57,36,.18)';
+                    toast.style.fontWeight = '700';
+                    document.body.appendChild(toast);
+                }
+
+                toast.textContent = message;
+                toast.hidden = false;
+
+                window.clearTimeout(toast.hideTimer);
+                toast.hideTimer = window.setTimeout(() => {
+                    toast.hidden = true;
+                }, 3000);
+            };
+
+            const replaceAdminContent = (html, url) => {
+                const page = new DOMParser().parseFromString(html, 'text/html');
+                const selectors = ['.stats-grid', '.status-filters', '[data-admin-report-list]', '.pager'];
+
+                selectors.forEach((selector) => {
+                    const current = document.querySelector(selector);
+                    const next = page.querySelector(selector);
+
+                    if (current && next) {
+                        current.replaceWith(next);
+                    } else if (current && !next) {
+                        current.remove();
+                    }
+                });
+
+                window.history.pushState({}, '', url);
+            };
+
+            const loadStatusTab = async (url) => {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Unable to load status tab.');
+                }
+
+                replaceAdminContent(await response.text(), url);
+            };
+
+            document.addEventListener('submit', async (event) => {
+                const form = event.target.closest('[data-admin-action]');
+
+                if (!form || event.defaultPrevented) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const button = form.querySelector('button[type="submit"]');
+                const originalDisabled = button?.disabled ?? false;
+
+                if (button) {
+                    button.disabled = true;
+                }
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Action failed.');
+                    }
+
+                    const payload = await response.json();
+                    const targetStatus = payload.target_status || form.dataset.targetStatus;
+                    const targetUrl = payload.target_url || `${dashboardUrl}?status=${encodeURIComponent(targetStatus)}`;
+
+                    form.closest('[data-admin-report-row]')?.remove();
+                    await loadStatusTab(targetUrl);
+                    showToast(payload.message || 'Report updated successfully.');
+                } catch (error) {
+                    form.submit();
+                } finally {
+                    if (button) {
+                        button.disabled = originalDisabled;
+                    }
+                }
+            });
+        });
+    </script>
 @endsection

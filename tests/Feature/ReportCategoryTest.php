@@ -5,11 +5,19 @@ namespace Tests\Feature;
 use App\Models\ItemReport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class ReportCategoryTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     public function test_report_form_has_a_category_dropdown_for_students(): void
     {
@@ -212,6 +220,90 @@ class ReportCategoryTest extends TestCase
             'user_id' => $student->id,
             'type' => ItemReport::TYPE_LOST,
             'location' => null,
+        ]);
+    }
+
+    public function test_lost_report_rejects_a_future_happened_at_date_time(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00'));
+
+        $student = $this->student('lost-future-date@example.com');
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $this->reportPayload([
+                'type' => ItemReport::TYPE_LOST,
+                'happened_at' => '2026-08-17T11:00',
+            ]))
+            ->assertSessionHasErrors([
+                'happened_at' => 'Invalid date/time',
+            ]);
+
+        $this->assertDatabaseMissing('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_LOST,
+        ]);
+    }
+
+    public function test_lost_report_accepts_current_happened_at_date_time(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00'));
+
+        $student = $this->student('lost-current-date@example.com');
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $this->reportPayload([
+                'type' => ItemReport::TYPE_LOST,
+                'happened_at' => '2026-08-17T10:00',
+            ]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_LOST,
+        ]);
+    }
+
+    public function test_found_report_rejects_a_future_happened_at_date_time(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00'));
+
+        $student = $this->student('found-future-date@example.com');
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $this->reportPayload([
+                'type' => ItemReport::TYPE_FOUND,
+                'happened_at' => '2026-08-17T11:00',
+            ]))
+            ->assertSessionHasErrors([
+                'happened_at' => 'Invalid date/time',
+            ]);
+
+        $this->assertDatabaseMissing('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_FOUND,
+        ]);
+    }
+
+    public function test_found_report_accepts_current_happened_at_date_time(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00'));
+
+        $student = $this->student('found-current-date@example.com');
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $this->reportPayload([
+                'type' => ItemReport::TYPE_FOUND,
+                'happened_at' => '2026-08-17T10:00',
+            ]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_FOUND,
         ]);
     }
 

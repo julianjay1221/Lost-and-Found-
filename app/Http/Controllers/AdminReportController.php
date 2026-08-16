@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\ItemReport;
 use App\Services\FoundItemMatchNotifier;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
 use Illuminate\View\View;
 
 class AdminReportController extends Controller
@@ -56,7 +56,7 @@ class AdminReportController extends Controller
         return view('admin.dashboard', compact('reports', 'stats', 'claimAlerts'));
     }
 
-    public function approve(Request $request, ItemReport $itemReport, FoundItemMatchNotifier $notifier): RedirectResponse
+    public function approve(Request $request, ItemReport $itemReport, FoundItemMatchNotifier $notifier): RedirectResponse|JsonResponse
     {
         $this->ensureAdmin($request);
 
@@ -72,17 +72,22 @@ class AdminReportController extends Controller
         $notifiedCount = $wasAlreadyApproved ? 0 : $notifier->notifyLostOwners($itemReport->refresh());
         $resolvedCount = $wasAlreadyApproved ? 0 : $notifier->markMatchingLostReportsFound($itemReport->refresh());
 
-        return back()->with(
-            'status',
-            $resolvedCount > 0
+        $message = $resolvedCount > 0
                 ? "Report approved. {$resolvedCount} matching lost item report(s) marked as found."
                 : ($notifiedCount > 0
                     ? "Report approved. {$notifiedCount} matching lost item owner(s) were notified."
-                    : 'Report approved.')
+                    : 'Report approved.');
+
+        return $this->actionResponse(
+            $request,
+            $itemReport,
+            ItemReport::STATUS_APPROVED,
+            'Report approved successfully.',
+            back()->with('status', $message)
         );
     }
 
-    public function reject(Request $request, ItemReport $itemReport): RedirectResponse
+    public function reject(Request $request, ItemReport $itemReport): RedirectResponse|JsonResponse
     {
         $this->ensureAdmin($request);
 
@@ -92,25 +97,39 @@ class AdminReportController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return back()->with('status', 'Report rejected.');
+        return $this->actionResponse(
+            $request,
+            $itemReport,
+            ItemReport::STATUS_REJECTED,
+            'Report rejected successfully.',
+            back()->with('status', 'Report rejected.')
+        );
     }
 
-    public function block(Request $request, ItemReport $itemReport): RedirectResponse
+    public function block(Request $request, ItemReport $itemReport): RedirectResponse|JsonResponse
     {
         $this->ensureAdmin($request);
 
-        if ($itemReport->photo_path) {
-            File::delete(public_path($itemReport->photo_path));
-        }
+        $itemReport->update([
+            'status' => ItemReport::STATUS_BLOCKED,
+            'is_spam' => true,
+            'admin_notes' => $request->input('admin_notes', $itemReport->admin_notes),
+            'blocked_at' => now(),
+            'reviewed_at' => now(),
+        ]);
 
-        $itemReport->delete();
-
-        return redirect()
-            ->route('admin.dashboard')
-            ->with('status', 'Spam report removed from admin history.');
+        return $this->actionResponse(
+            $request,
+            $itemReport,
+            ItemReport::STATUS_BLOCKED,
+            'Report marked as spam successfully.',
+            redirect()
+                ->route('admin.dashboard', ['status' => ItemReport::STATUS_BLOCKED])
+                ->with('status', 'Spam report moved to spam tab.')
+        );
     }
 
-    public function close(Request $request, ItemReport $itemReport): RedirectResponse
+    public function close(Request $request, ItemReport $itemReport): RedirectResponse|JsonResponse
     {
         $this->ensureAdmin($request);
 
@@ -122,12 +141,18 @@ class AdminReportController extends Controller
             'closed_at' => now(),
         ]);
 
-        return redirect()
-            ->route('admin.dashboard', ['status' => ItemReport::STATUS_CLOSED])
-            ->with('status', 'Case closed.');
+        return $this->actionResponse(
+            $request,
+            $itemReport,
+            ItemReport::STATUS_CLOSED,
+            'Case closed successfully.',
+            redirect()
+                ->route('admin.dashboard', ['status' => ItemReport::STATUS_CLOSED])
+                ->with('status', 'Case closed.')
+        );
     }
 
-    public function confirmClaim(Request $request, ItemReport $itemReport): RedirectResponse
+    public function confirmClaim(Request $request, ItemReport $itemReport): RedirectResponse|JsonResponse
     {
         $this->ensureAdmin($request);
 
@@ -148,12 +173,18 @@ class AdminReportController extends Controller
             'claim_confirmed_at' => $confirmedAt,
         ]);
 
-        return redirect()
-            ->route('admin.dashboard')
-            ->with('status', 'Claim confirmed. The claimed found item is now visible on the public dashboard.');
+        return $this->actionResponse(
+            $request,
+            $itemReport,
+            ItemReport::STATUS_CLAIMED,
+            'Claim confirmed successfully.',
+            redirect()
+                ->route('admin.dashboard')
+                ->with('status', 'Claim confirmed. The claimed found item is now visible on the public dashboard.')
+        );
     }
 
-    public function archive(Request $request, ItemReport $itemReport): RedirectResponse
+    public function archive(Request $request, ItemReport $itemReport): RedirectResponse|JsonResponse
     {
         $this->ensureAdmin($request);
 
@@ -168,9 +199,38 @@ class AdminReportController extends Controller
             'archived_at' => now(),
         ]);
 
-        return redirect()
-            ->route('admin.dashboard')
-            ->with('status', 'Report moved to archive history.');
+        return $this->actionResponse(
+            $request,
+            $itemReport,
+            ItemReport::STATUS_ARCHIVED,
+            'Report archived successfully.',
+            redirect()
+                ->route('admin.dashboard')
+                ->with('status', 'Report moved to archive history.')
+        );
+    }
+
+    private function actionResponse(
+        Request $request,
+        ItemReport $itemReport,
+        string $targetStatus,
+        string $message,
+        RedirectResponse $fallback
+    ): RedirectResponse|JsonResponse {
+        if (! $request->expectsJson()) {
+            return $fallback;
+        }
+
+        return response()->json([
+            'message' => $message,
+            'target_status' => $targetStatus,
+            'target_url' => route('admin.dashboard', ['status' => $targetStatus]),
+            'report' => [
+                'id' => $itemReport->id,
+                'status' => $itemReport->status,
+                'is_spam' => $itemReport->is_spam,
+            ],
+        ]);
     }
 
     private function ensureAdmin(Request $request): void

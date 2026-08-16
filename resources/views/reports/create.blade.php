@@ -57,7 +57,8 @@
 
             <div class="field span-2" style="max-width: 420px; margin: 0 auto; width: 100%;">
                 <label for="happened_at" style="text-align: center;">Date & Time</label>
-                <input class="input" id="happened_at" type="datetime-local" name="happened_at" value="{{ old('happened_at') }}" style="text-align: center;">
+                <input class="input" id="happened_at" type="datetime-local" name="happened_at" value="{{ old('happened_at') }}" style="text-align: center;" data-report-date-time>
+                <p id="happened_at_error" class="muted" style="display: {{ $errors->has('happened_at') ? 'block' : 'none' }}; color: #dc2626; margin-top: 6px; text-align: center;">{{ $errors->first('happened_at') }}</p>
             </div>
 
 
@@ -97,6 +98,48 @@
         document.addEventListener('DOMContentLoaded', () => {
             const categorySelect = document.getElementById('category');
             const customCategoryInput = document.getElementById('category_custom');
+            const reportDateTimeInput = document.querySelector('[data-report-date-time]');
+            const reportDateTimeError = document.getElementById('happened_at_error');
+            const reportForm = reportDateTimeInput?.closest('form');
+
+            if (reportDateTimeInput && reportDateTimeError && reportForm) {
+                const formatDateTimeLocal = (date) => {
+                    const pad = (value) => String(value).padStart(2, '0');
+
+                    return [
+                        date.getFullYear(),
+                        pad(date.getMonth() + 1),
+                        pad(date.getDate()),
+                    ].join('-') + 'T' + [
+                        pad(date.getHours()),
+                        pad(date.getMinutes()),
+                    ].join(':');
+                };
+
+                const validateReportDateTime = () => {
+                    const now = new Date();
+                    const maxDateTime = formatDateTimeLocal(now);
+                    const hasFutureDateTime = reportDateTimeInput.value && new Date(reportDateTimeInput.value) > now;
+
+                    reportDateTimeInput.max = maxDateTime;
+                    reportDateTimeInput.setCustomValidity(hasFutureDateTime ? 'Invalid date/time' : '');
+                    reportDateTimeError.textContent = hasFutureDateTime ? 'Invalid date/time' : '';
+                    reportDateTimeError.style.display = hasFutureDateTime ? 'block' : 'none';
+
+                    return !hasFutureDateTime;
+                };
+
+                reportDateTimeInput.addEventListener('input', validateReportDateTime);
+                reportDateTimeInput.addEventListener('change', validateReportDateTime);
+                reportForm.addEventListener('submit', (event) => {
+                    if (!validateReportDateTime()) {
+                        event.preventDefault();
+                        reportDateTimeInput.reportValidity();
+                    }
+                });
+
+                validateReportDateTime();
+            }
 
             if (!categorySelect || !customCategoryInput) {
                 return;
