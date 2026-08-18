@@ -32,6 +32,20 @@ class ReportCategoryTest extends TestCase
             ->assertSeeText('Add new category...');
     }
 
+    public function test_report_form_prefills_contact_phone_from_the_user_profile(): void
+    {
+        $student = $this->student('prefill-phone@example.com', [
+            'contact_phone' => '09170000001',
+        ]);
+
+        $this
+            ->actingAs($student)
+            ->get(route('reports.create', ['type' => ItemReport::TYPE_FOUND]))
+            ->assertOk()
+            ->assertSee('id="contact_phone"', false)
+            ->assertSee('value="09170000001"', false);
+    }
+
     public function test_student_can_submit_lost_report_with_a_new_category(): void
     {
         $student = $this->student('lost-category@example.com');
@@ -225,7 +239,7 @@ class ReportCategoryTest extends TestCase
 
     public function test_lost_report_rejects_a_future_happened_at_date_time(): void
     {
-        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00'));
+        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00', config('app.timezone')));
 
         $student = $this->student('lost-future-date@example.com');
 
@@ -247,7 +261,7 @@ class ReportCategoryTest extends TestCase
 
     public function test_lost_report_accepts_current_happened_at_date_time(): void
     {
-        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00'));
+        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00', config('app.timezone')));
 
         $student = $this->student('lost-current-date@example.com');
 
@@ -267,7 +281,7 @@ class ReportCategoryTest extends TestCase
 
     public function test_found_report_rejects_a_future_happened_at_date_time(): void
     {
-        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00'));
+        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00', config('app.timezone')));
 
         $student = $this->student('found-future-date@example.com');
 
@@ -289,7 +303,7 @@ class ReportCategoryTest extends TestCase
 
     public function test_found_report_accepts_current_happened_at_date_time(): void
     {
-        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00'));
+        Carbon::setTestNow(Carbon::parse('2026-08-17 10:00:00', config('app.timezone')));
 
         $student = $this->student('found-current-date@example.com');
 
@@ -298,6 +312,43 @@ class ReportCategoryTest extends TestCase
             ->post(route('reports.store'), $this->reportPayload([
                 'type' => ItemReport::TYPE_FOUND,
                 'happened_at' => '2026-08-17T10:00',
+            ]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_FOUND,
+        ]);
+    }
+
+    public function test_lost_report_rejects_a_future_happened_at_date_time_with_seconds(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-18 13:48:30', config('app.timezone')));
+
+        $student = $this->student('lost-future-seconds@example.com');
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $this->reportPayload([
+                'type' => ItemReport::TYPE_LOST,
+                'happened_at' => '2026-08-18T13:48:31',
+            ]))
+            ->assertSessionHasErrors([
+                'happened_at' => 'Invalid date/time',
+            ]);
+    }
+
+    public function test_found_report_accepts_current_happened_at_date_time_with_seconds(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-08-18 13:48:30', config('app.timezone')));
+
+        $student = $this->student('found-current-seconds@example.com');
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $this->reportPayload([
+                'type' => ItemReport::TYPE_FOUND,
+                'happened_at' => '2026-08-18T13:48:30',
             ]))
             ->assertRedirect();
 
@@ -362,14 +413,51 @@ class ReportCategoryTest extends TestCase
         ]);
     }
 
-    private function student(string $email): User
+    public function test_student_reports_use_the_updated_profile_contact_phone(): void
     {
-        return User::create([
+        $student = $this->student('updated-phone@example.com', [
+            'contact_phone' => '09170000001',
+        ]);
+
+        $this
+            ->actingAs($student)
+            ->patch(route('student.profile.update'), [
+                'email' => $student->email,
+                'contact_phone' => '09170000002',
+            ])
+            ->assertRedirect();
+
+        $this
+            ->actingAs($student)
+            ->get(route('reports.create', ['type' => ItemReport::TYPE_LOST]))
+            ->assertOk()
+            ->assertSee('value="09170000002"', false);
+
+        $payload = $this->reportPayload([
+            'contact_phone' => null,
+        ]);
+        unset($payload['contact_phone']);
+
+        $this
+            ->actingAs($student)
+            ->post(route('reports.store'), $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('item_reports', [
+            'user_id' => $student->id,
+            'type' => ItemReport::TYPE_LOST,
+            'contact_phone' => '09170000002',
+        ]);
+    }
+
+    private function student(string $email, array $overrides = []): User
+    {
+        return User::create(array_merge([
             'name' => 'Student User',
             'email' => $email,
             'password' => 'password',
             'role' => 'student',
-        ]);
+        ], $overrides));
     }
 
     private function reportPayload(array $overrides = []): array

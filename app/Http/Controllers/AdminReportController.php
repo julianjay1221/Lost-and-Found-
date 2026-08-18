@@ -8,19 +8,35 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\View\View;
 
 class AdminReportController extends Controller
 {
+    private const ADMIN_STATUS_HISTORY = 'history';
+    private const ADMIN_STATUS_SPAM = 'spam';
+
     public function index(Request $request): View
     {
         $this->ensureAdmin($request);
+
+        $requestedStatus = $request->query('status');
+        $normalizedStatus = $this->normalizeDashboardStatus($requestedStatus);
 
         $reports = ItemReport::query()
             ->with('user')
             ->when(
                 $request->filled('status'),
-                fn (Builder $query) => $query->where('status', $request->query('status')),
+                fn (Builder $query) => $query->where(function (Builder $query) use ($normalizedStatus) {
+                    if ($normalizedStatus === ItemReport::STATUS_BLOCKED) {
+                        $query->where('status', ItemReport::STATUS_BLOCKED)
+                            ->where('is_spam', true);
+
+                        return;
+                    }
+
+                    $query->where('status', $normalizedStatus ?? ItemReport::STATUS_PENDING);
+                }),
                 fn (Builder $query) => $query->notArchived()
             )
             ->latest()
@@ -32,14 +48,12 @@ class AdminReportController extends Controller
             'pending' => ItemReport::query()->where('status', ItemReport::STATUS_PENDING)->count(),
             'approved' => ItemReport::query()->where('status', ItemReport::STATUS_APPROVED)->count(),
             'claimed' => ItemReport::query()->whereIn('status', [ItemReport::STATUS_CLAIMED, ItemReport::STATUS_CLOSED])->count(),
-            'archived' => ItemReport::query()->where('status', ItemReport::STATUS_ARCHIVED)->count(),
-            'rejected' => ItemReport::query()->where('status', ItemReport::STATUS_REJECTED)->count(),
+            'history' => ItemReport::query()->where('status', ItemReport::STATUS_ARCHIVED)->count(),
             'blocked_ips' => ItemReport::query()
                 ->where('status', ItemReport::STATUS_BLOCKED)
                 ->whereNotNull('ip_address')
                 ->distinct()
                 ->count('ip_address'),
-            'spam' => ItemReport::query()->where('is_spam', true)->count(),
             'submissions_24h' => ItemReport::query()->where('created_at', '>=', now()->subDay())->count(),
         ];
 
@@ -91,18 +105,12 @@ class AdminReportController extends Controller
     {
         $this->ensureAdmin($request);
 
-        $itemReport->update([
-            'status' => ItemReport::STATUS_REJECTED,
-            'admin_notes' => $request->input('admin_notes'),
-            'reviewed_at' => now(),
-        ]);
+        $this->deleteReport($itemReport);
 
-        return $this->actionResponse(
+        return $this->deleteActionResponse(
             $request,
-            $itemReport,
-            ItemReport::STATUS_REJECTED,
-            'Report rejected successfully.',
-            back()->with('status', 'Report rejected.')
+            'Report rejected and deleted successfully.',
+            'Report rejected and deleted.'
         );
     }
 
@@ -110,22 +118,12 @@ class AdminReportController extends Controller
     {
         $this->ensureAdmin($request);
 
-        $itemReport->update([
-            'status' => ItemReport::STATUS_BLOCKED,
-            'is_spam' => true,
-            'admin_notes' => $request->input('admin_notes', $itemReport->admin_notes),
-            'blocked_at' => now(),
-            'reviewed_at' => now(),
-        ]);
+        $this->deleteReport($itemReport);
 
-        return $this->actionResponse(
+        return $this->deleteActionResponse(
             $request,
-            $itemReport,
-            ItemReport::STATUS_BLOCKED,
-            'Report marked as spam successfully.',
-            redirect()
-                ->route('admin.dashboard', ['status' => ItemReport::STATUS_BLOCKED])
-                ->with('status', 'Spam report moved to spam tab.')
+            'Spam report deleted successfully.',
+            'Spam report deleted.'
         );
     }
 
@@ -202,11 +200,11 @@ class AdminReportController extends Controller
         return $this->actionResponse(
             $request,
             $itemReport,
-            ItemReport::STATUS_ARCHIVED,
-            'Report archived successfully.',
+            self::ADMIN_STATUS_HISTORY,
+            'Report moved to history successfully.',
             redirect()
-                ->route('admin.dashboard')
-                ->with('status', 'Report moved to archive history.')
+                ->route('admin.dashboard', ['status' => self::ADMIN_STATUS_HISTORY])
+                ->with('status', 'Report moved to history successfully.')
         );
     }
 
@@ -223,8 +221,8 @@ class AdminReportController extends Controller
 
         return response()->json([
             'message' => $message,
-            'target_status' => $targetStatus,
-            'target_url' => route('admin.dashboard', ['status' => $targetStatus]),
+            'target_status' => $this->presentDashboardStatus($targetStatus),
+            'target_url' => route('admin.dashboard', ['status' => $this->presentDashboardStatus($targetStatus)]),
             'report' => [
                 'id' => $itemReport->id,
                 'status' => $itemReport->status,
@@ -233,8 +231,73 @@ class AdminReportController extends Controller
         ]);
     }
 
+    private function deleteActionResponse(
+        Request $request,
+        string $message,
+        string $fallbackMessage
+    ): RedirectResponse|JsonResponse {
+        $returnStatus = $this->dashboardReturnStatus($request->input('return_status'));
+        $targetUrl = $this->dashboardUrlForStatus($returnStatus);
+
+        if (! $request->expectsJson()) {
+            return redirect($targetUrl)->with('status', $fallbackMessage);
+        }
+
+        return response()->json([
+            'message' => $message,
+            'target_status' => $returnStatus ?? 'all',
+            'target_url' => $targetUrl,
+            'report' => [
+                'deleted' => true,
+            ],
+        ]);
+    }
+
     private function ensureAdmin(Request $request): void
     {
         abort_unless($request->user()?->isAdmin(), 403);
+    }
+
+    private function normalizeDashboardStatus(?string $status): ?string
+    {
+        return match ($status) {
+            self::ADMIN_STATUS_HISTORY => ItemReport::STATUS_ARCHIVED,
+            self::ADMIN_STATUS_SPAM => ItemReport::STATUS_BLOCKED,
+            default => $status,
+        };
+    }
+
+    private function presentDashboardStatus(string $status): string
+    {
+        return match ($status) {
+            ItemReport::STATUS_ARCHIVED => self::ADMIN_STATUS_HISTORY,
+            ItemReport::STATUS_BLOCKED => self::ADMIN_STATUS_SPAM,
+            default => $status,
+        };
+    }
+
+    private function deleteReport(ItemReport $itemReport): void
+    {
+        if ($itemReport->photo_path) {
+            File::delete(public_path($itemReport->photo_path));
+        }
+
+        $itemReport->delete();
+    }
+
+    private function dashboardReturnStatus(?string $status): ?string
+    {
+        $status = is_string($status) ? trim($status) : null;
+
+        return in_array($status, ['all', ItemReport::STATUS_PENDING, ItemReport::STATUS_APPROVED, ItemReport::STATUS_FOUND, ItemReport::STATUS_CLAIMED, ItemReport::STATUS_CLOSED, self::ADMIN_STATUS_HISTORY], true)
+            ? $status
+            : null;
+    }
+
+    private function dashboardUrlForStatus(?string $status): string
+    {
+        return $status && $status !== 'all'
+            ? route('admin.dashboard', ['status' => $status])
+            : route('admin.dashboard');
     }
 }

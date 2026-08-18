@@ -28,33 +28,58 @@ class AdminRealtimeActionTest extends TestCase
         $this->assertSame(ItemReport::STATUS_APPROVED, $report->refresh()->status);
     }
 
-    public function test_admin_remove_spam_action_moves_report_to_spam_tab_without_deleting_it(): void
+    public function test_admin_remove_spam_action_deletes_report_from_database_and_returns_realtime_payload(): void
     {
         $admin = $this->admin();
         $report = $this->report(['status' => ItemReport::STATUS_PENDING]);
 
         $this
             ->actingAs($admin)
-            ->patchJson(route('admin.reports.block', $report))
+            ->patchJson(route('admin.reports.block', $report), [
+                'return_status' => ItemReport::STATUS_PENDING,
+            ])
             ->assertOk()
-            ->assertJsonPath('message', 'Report marked as spam successfully.')
-            ->assertJsonPath('target_status', ItemReport::STATUS_BLOCKED)
-            ->assertJsonPath('report.id', $report->id)
-            ->assertJsonPath('report.status', ItemReport::STATUS_BLOCKED)
-            ->assertJsonPath('report.is_spam', true);
+            ->assertJsonPath('message', 'Spam report deleted successfully.')
+            ->assertJsonPath('target_status', ItemReport::STATUS_PENDING)
+            ->assertJsonPath('target_url', route('admin.dashboard', ['status' => ItemReport::STATUS_PENDING]))
+            ->assertJsonPath('report.deleted', true);
 
-        $report->refresh();
-
-        $this->assertSame(ItemReport::STATUS_BLOCKED, $report->status);
-        $this->assertTrue($report->is_spam);
-        $this->assertNotNull($report->blocked_at);
+        $this->assertDatabaseMissing('item_reports', [
+            'id' => $report->id,
+        ]);
 
         $this
             ->actingAs($admin)
-            ->get(route('admin.dashboard', ['status' => ItemReport::STATUS_BLOCKED]))
+            ->get(route('admin.dashboard', ['status' => ItemReport::STATUS_PENDING]))
             ->assertOk()
-            ->assertSeeText('Spam')
-            ->assertSeeText($report->item_name);
+            ->assertDontSeeText($report->item_name);
+    }
+
+    public function test_admin_reject_action_deletes_report_from_database_and_returns_realtime_payload(): void
+    {
+        $admin = $this->admin();
+        $report = $this->report(['status' => ItemReport::STATUS_APPROVED]);
+
+        $this
+            ->actingAs($admin)
+            ->patchJson(route('admin.reports.reject', $report), [
+                'return_status' => ItemReport::STATUS_APPROVED,
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Report rejected and deleted successfully.')
+            ->assertJsonPath('target_status', ItemReport::STATUS_APPROVED)
+            ->assertJsonPath('target_url', route('admin.dashboard', ['status' => ItemReport::STATUS_APPROVED]))
+            ->assertJsonPath('report.deleted', true);
+
+        $this->assertDatabaseMissing('item_reports', [
+            'id' => $report->id,
+        ]);
+
+        $this
+            ->actingAs($admin)
+            ->get(route('admin.dashboard', ['status' => ItemReport::STATUS_APPROVED]))
+            ->assertOk()
+            ->assertDontSeeText($report->item_name);
     }
 
     public function test_admin_archive_action_returns_realtime_archived_status_payload(): void
@@ -66,8 +91,9 @@ class AdminRealtimeActionTest extends TestCase
             ->actingAs($admin)
             ->patchJson(route('admin.reports.archive', $report))
             ->assertOk()
-            ->assertJsonPath('message', 'Report archived successfully.')
-            ->assertJsonPath('target_status', ItemReport::STATUS_ARCHIVED)
+            ->assertJsonPath('message', 'Report moved to history successfully.')
+            ->assertJsonPath('target_status', 'history')
+            ->assertJsonPath('target_url', route('admin.dashboard', ['status' => 'history']))
             ->assertJsonPath('report.id', $report->id)
             ->assertJsonPath('report.status', ItemReport::STATUS_ARCHIVED);
 

@@ -12,6 +12,7 @@
         $usesCustomCategory = $oldCategory === $customCategoryValue || ($oldCategory && ! $categories->contains($oldCategory));
         $customCategoryName = old('category_custom', $usesCustomCategory && $oldCategory !== $customCategoryValue ? $oldCategory : '');
         $schoolId = auth()->user()?->name ?? '';
+        $contactPhone = $contactPhone ?? auth()->user()?->contact_phone ?? '';
     @endphp
 
     <section class="page-head">
@@ -79,7 +80,7 @@
 
             <div class="field">
                 <label for="contact_phone">Cellphone Number</label>
-                <input class="input" id="contact_phone" name="contact_phone" value="{{ old('contact_phone') }}" inputmode="tel" autocomplete="tel" required>
+                <input class="input" id="contact_phone" name="contact_phone" value="{{ old('contact_phone', $contactPhone) }}" inputmode="tel" autocomplete="tel" required>
             </div>
 
             <div class="field">
@@ -101,27 +102,44 @@
             const reportDateTimeInput = document.querySelector('[data-report-date-time]');
             const reportDateTimeError = document.getElementById('happened_at_error');
             const reportForm = reportDateTimeInput?.closest('form');
+            const reportTimeZone = @js(config('app.timezone'));
 
             if (reportDateTimeInput && reportDateTimeError && reportForm) {
-                const formatDateTimeLocal = (date) => {
-                    const pad = (value) => String(value).padStart(2, '0');
+                const getDateTimeParts = (date) => {
+                    const formatter = new Intl.DateTimeFormat('en-CA', {
+                        timeZone: reportTimeZone,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false,
+                    });
 
-                    return [
-                        date.getFullYear(),
-                        pad(date.getMonth() + 1),
-                        pad(date.getDate()),
-                    ].join('-') + 'T' + [
-                        pad(date.getHours()),
-                        pad(date.getMinutes()),
-                    ].join(':');
+                    return Object.fromEntries(
+                        formatter.formatToParts(date)
+                            .filter(({ type }) => type !== 'literal')
+                            .map(({ type, value }) => [type, value]),
+                    );
                 };
 
-                const validateReportDateTime = () => {
-                    const now = new Date();
-                    const maxDateTime = formatDateTimeLocal(now);
-                    const hasFutureDateTime = reportDateTimeInput.value && new Date(reportDateTimeInput.value) > now;
+                const formatDateTimeLocal = (date) => {
+                    const parts = getDateTimeParts(date);
 
-                    reportDateTimeInput.max = maxDateTime;
+                    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+                };
+
+                const getCurrentDateTimeLocal = () => formatDateTimeLocal(new Date());
+
+                const isCompleteDateTimeValue = (value) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(value);
+
+                const validateReportDateTime = () => {
+                    const nowDateTime = getCurrentDateTimeLocal();
+                    const value = reportDateTimeInput.value;
+                    const hasFutureDateTime = Boolean(value) && isCompleteDateTimeValue(value) && value > nowDateTime;
+
+                    reportDateTimeInput.max = nowDateTime;
                     reportDateTimeInput.setCustomValidity(hasFutureDateTime ? 'Invalid date/time' : '');
                     reportDateTimeError.textContent = hasFutureDateTime ? 'Invalid date/time' : '';
                     reportDateTimeError.style.display = hasFutureDateTime ? 'block' : 'none';

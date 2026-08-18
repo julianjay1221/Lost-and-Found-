@@ -10,11 +10,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ReportController extends Controller
@@ -77,8 +79,9 @@ class ReportController extends Controller
 
         $categories = $this->categoryOptions($request->user()->id);
         $customCategoryValue = self::CUSTOM_CATEGORY_VALUE;
+        $contactPhone = $request->user()->contact_phone;
 
-        return view('reports.create', compact('categories', 'customCategoryValue'));
+        return view('reports.create', compact('categories', 'customCategoryValue', 'contactPhone'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -104,16 +107,44 @@ class ReportController extends Controller
                 'max:80',
                 Rule::notIn([self::CUSTOM_CATEGORY_VALUE]),
             ],
-            'happened_at' => ['nullable', 'date', 'before_or_equal:now'],
+            'happened_at' => [
+                'nullable',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_string($value) || trim($value) === '') {
+                        return;
+                    }
+
+                    $timezone = config('app.timezone');
+
+                    try {
+                        $selectedDateTime = Carbon::parse($value, $timezone);
+                    } catch (\Throwable) {
+                        return;
+                    }
+
+                    if ($selectedDateTime->greaterThan(Carbon::now($timezone))) {
+                        $fail('Invalid date/time');
+                    }
+                },
+            ],
             'location' => ['nullable', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:1000'],
             'contact_name' => ['required', 'string', 'max:120'],
-            'contact_phone' => ['required', 'string', 'max:50'],
+            'contact_phone' => ['nullable', 'string', 'max:50'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'photo' => ['nullable', 'image', 'max:4096'],
-        ], [
-            'happened_at.before_or_equal' => 'Invalid date/time',
         ]);
+
+        $data['contact_phone'] = filled($data['contact_phone'])
+            ? $data['contact_phone']
+            : $request->user()->contact_phone;
+
+        if (! filled($data['contact_phone'])) {
+            throw ValidationException::withMessages([
+                'contact_phone' => 'Please add a contact number in your profile before submitting a report.',
+            ]);
+        }
 
         if ($request->hasFile('photo')) {
             File::ensureDirectoryExists(public_path('uploads/item-reports'));

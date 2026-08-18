@@ -90,20 +90,12 @@
             <strong>{{ $stats['claimed'] }}</strong>
         </article>
         <article class="stat-card">
-            <span>Archived</span>
-            <strong>{{ $stats['archived'] }}</strong>
-        </article>
-        <article class="stat-card">
-            <span>Rejected</span>
-            <strong>{{ $stats['rejected'] }}</strong>
+            <span>History</span>
+            <strong>{{ $stats['history'] }}</strong>
         </article>
         <article class="stat-card">
             <span>Blocked IPs</span>
             <strong>{{ $stats['blocked_ips'] }}</strong>
-        </article>
-        <article class="stat-card">
-            <span>Spam Attempts</span>
-            <strong>{{ $stats['spam'] }}</strong>
         </article>
         <article class="stat-card">
             <span>Submissions 24H</span>
@@ -112,15 +104,26 @@
     </section>
 
     @php
+        $returnStatus = request('status', 'all');
         $statuses = [
             'pending' => 'Pending',
             'approved' => 'Approved',
             'found' => 'Found',
             'claimed' => 'Claimed',
+            'history' => 'History',
+        ];
+
+        $statusLabels = [
+            'pending' => 'Pending',
+            'approved' => 'Approved',
+            'found' => 'Found',
+            'claimed' => 'Claimed',
             'closed' => 'Closed',
-            'archived' => 'Archived',
-            'rejected' => 'Rejected',
-            'blocked' => 'Spam',
+            'archived' => 'History',
+        ];
+
+        $statusBadgeClasses = [
+            'archived' => 'badge-archived',
         ];
     @endphp
 
@@ -147,17 +150,14 @@
                             <form method="POST" action="{{ route('admin.reports.confirm-claim', $alert) }}" data-admin-action data-target-status="claimed">
                                 @csrf
                                 @method('PATCH')
+                                <input type="hidden" name="return_status" value="{{ $returnStatus }}">
                                 <button class="button" type="submit">Confirm Claim</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.reports.close', $alert) }}" data-admin-action data-target-status="closed">
+                            <form method="POST" action="{{ route('admin.reports.archive', $alert) }}" onsubmit="return confirm('Move this claimed report to history?');" data-admin-action data-target-status="history">
                                 @csrf
                                 @method('PATCH')
-                                <button class="button" type="submit">Close History</button>
-                            </form>
-                            <form method="POST" action="{{ route('admin.reports.archive', $alert) }}" onsubmit="return confirm('Move this claimed report to archive?');" data-admin-action data-target-status="archived">
-                                @csrf
-                                @method('PATCH')
-                                <button class="danger-button" type="submit">Move to Archive</button>
+                                <input type="hidden" name="return_status" value="{{ $returnStatus }}">
+                                <button class="danger-button" type="submit">Move to History</button>
                             </form>
                             <a class="ghost-button" href="{{ route('admin.dashboard', ['status' => 'claimed']) }}">View Claimed Queue</a>
                         </div>
@@ -182,7 +182,7 @@
                 <div>
                     <div class="report-meta">
                         <span class="badge badge-{{ $report->type }}">{{ $report->type }}</span>
-                        <span class="badge badge-{{ $report->status }}">{{ $report->status }}</span>
+                        <span class="badge {{ $statusBadgeClasses[$report->status] ?? 'badge-' . $report->status }}">{{ $statusLabels[$report->status] ?? $report->status }}</span>
                         <span class="badge badge-category">{{ $report->category }}</span>
                         @if ($report->user?->isAdmin())
                             <span class="badge badge-admin">Admin</span>
@@ -219,7 +219,7 @@
                         </div>
                         @if ($report->archived_at)
                             <div>
-                                <dt>Archived</dt>
+                                <dt>History</dt>
                                 <dd>{{ $report->archived_at->format('M d, Y h:i A') }}</dd>
                             </div>
                         @endif
@@ -235,56 +235,61 @@
                 </div>
 
                 <div class="admin-actions">
-                    @if (! in_array($report->status, ['approved', 'archived'], true))
-                        <form method="POST" action="{{ route('admin.reports.approve', $report) }}" data-admin-action data-target-status="approved">
-                            @csrf
-                            @method('PATCH')
-                            <button class="button" type="submit">Approve</button>
-                        </form>
-                    @endif
-
-                    @if (! in_array($report->status, ['rejected', 'claimed', 'closed', 'archived'], true))
-                        <form method="POST" action="{{ route('admin.reports.reject', $report) }}" data-admin-action data-target-status="rejected">
-                            @csrf
-                            @method('PATCH')
-                            <button class="ghost-button" type="submit">Reject</button>
-                        </form>
-                    @endif
-
-                    @if (! in_array($report->status, ['blocked', 'archived'], true))
-                        <form method="POST" action="{{ route('admin.reports.block', $report) }}" onsubmit="return confirm('Move this report to the spam tab?');" data-admin-action data-target-status="blocked">
-                            @csrf
-                            @method('PATCH')
-                            <button class="danger-button" type="submit">Remove Spam</button>
-                        </form>
-                    @endif
-
-                    @if (in_array($report->status, ['found', 'claimed'], true))
-                        @if ($report->type === 'lost' && $report->status === 'claimed' && ! $report->claim_confirmed_at)
-                            <form method="POST" action="{{ route('admin.reports.confirm-claim', $report) }}" data-admin-action data-target-status="claimed">
+                    @if (in_array($report->status, ['approved', 'claimed'], true))
+                        @if ($report->photoUrl())
+                            <a class="ghost-button" href="{{ $report->photoUrl() }}" target="_blank" rel="noreferrer">View Photo</a>
+                        @endif
+                    @else
+                        @if (! in_array($report->status, ['approved', 'archived'], true))
+                            <form method="POST" action="{{ route('admin.reports.approve', $report) }}" data-admin-action data-target-status="approved">
                                 @csrf
                                 @method('PATCH')
-                                <button class="button" type="submit">Confirm Claim</button>
+                                <input type="hidden" name="return_status" value="{{ $returnStatus }}">
+                                <button class="button" type="submit">Approve</button>
                             </form>
                         @endif
 
-                        <form method="POST" action="{{ route('admin.reports.close', $report) }}" data-admin-action data-target-status="closed">
-                            @csrf
-                            @method('PATCH')
-                            <button class="button" type="submit">Close History</button>
-                        </form>
-                    @endif
+                        @if (! in_array($report->status, ['claimed', 'closed', 'archived'], true))
+                            <form method="POST" action="{{ route('admin.reports.reject', $report) }}" data-admin-action data-target-status="rejected">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="return_status" value="{{ $returnStatus }}">
+                                <button class="ghost-button" type="submit">Reject</button>
+                            </form>
+                        @endif
 
-                    @if (in_array($report->status, ['found', 'claimed', 'closed'], true))
-                        <form method="POST" action="{{ route('admin.reports.archive', $report) }}" onsubmit="return confirm('Move this claimed report to archive?');" data-admin-action data-target-status="archived">
-                            @csrf
-                            @method('PATCH')
-                            <button class="danger-button" type="submit">Move to Archive</button>
-                        </form>
-                    @endif
+                        @if (! in_array($report->status, ['blocked', 'archived'], true))
+                            <form method="POST" action="{{ route('admin.reports.block', $report) }}" onsubmit="return confirm('Move this report to the spam tab?');" data-admin-action data-target-status="spam">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="return_status" value="{{ $returnStatus }}">
+                                <button class="danger-button" type="submit">Remove Spam</button>
+                            </form>
+                        @endif
 
-                    @if ($report->photoUrl())
-                        <a class="ghost-button" href="{{ $report->photoUrl() }}" target="_blank" rel="noreferrer">View Photo</a>
+                        @if (in_array($report->status, ['found', 'claimed'], true))
+                            @if ($report->type === 'lost' && $report->status === 'claimed' && ! $report->claim_confirmed_at)
+                                <form method="POST" action="{{ route('admin.reports.confirm-claim', $report) }}" data-admin-action data-target-status="claimed">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="return_status" value="{{ $returnStatus }}">
+                                    <button class="button" type="submit">Confirm Claim</button>
+                                </form>
+                            @endif
+
+                            @if ($report->status !== 'claimed')
+                                <form method="POST" action="{{ route('admin.reports.archive', $report) }}" onsubmit="return confirm('Move this claimed report to history?');" data-admin-action data-target-status="history">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="return_status" value="{{ $returnStatus }}">
+                                    <button class="danger-button" type="submit">Move to History</button>
+                                </form>
+                            @endif
+                        @endif
+
+                        @if ($report->photoUrl())
+                            <a class="ghost-button" href="{{ $report->photoUrl() }}" target="_blank" rel="noreferrer">View Photo</a>
+                        @endif
                     @endif
                 </div>
             </article>

@@ -35,6 +35,42 @@ class StudentReportDeletionTest extends TestCase
         ]);
     }
 
+    public function test_student_report_status_page_shows_report_photo_when_available(): void
+    {
+        $student = $this->student('photo-status@example.com');
+
+        $report = $this->reportFor($student, [
+            'status' => ItemReport::STATUS_PENDING,
+            'photo_path' => 'uploads/item-reports/sample-photo.jpg',
+        ]);
+
+        $this
+            ->actingAs($student)
+            ->get(route('reports.show', $report))
+            ->assertOk()
+            ->assertSeeText('Item Photo')
+            ->assertSee('uploads/item-reports/sample-photo.jpg', false)
+            ->assertSeeText('Delete Report')
+            ->assertSeeText('View Board');
+    }
+
+    public function test_student_report_status_page_hides_photo_section_when_no_photo_exists(): void
+    {
+        $student = $this->student('no-photo-status@example.com');
+
+        $report = $this->reportFor($student, [
+            'status' => ItemReport::STATUS_PENDING,
+            'photo_path' => null,
+        ]);
+
+        $this
+            ->actingAs($student)
+            ->get(route('reports.show', $report))
+            ->assertOk()
+            ->assertDontSeeText('Item Photo')
+            ->assertDontSee('uploads/item-reports/', false);
+    }
+
     public function test_student_cannot_delete_another_students_report(): void
     {
         $owner = $this->student('owner@example.com');

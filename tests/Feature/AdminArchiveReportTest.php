@@ -11,7 +11,7 @@ class AdminArchiveReportTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_move_claimed_report_to_archive_history(): void
+    public function test_claimed_reports_do_not_show_status_change_buttons_on_the_admin_dashboard(): void
     {
         $admin = User::create([
             'name' => 'Admin User',
@@ -43,29 +43,53 @@ class AdminArchiveReportTest extends TestCase
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSeeText('Archive Wallet')
-            ->assertSeeText('Move to Archive');
+            ->assertSeeText('Claimed')
+            ->assertDontSeeText('Reject')
+            ->assertDontSeeText('Remove Spam')
+            ->assertDontSeeText('Move to History')
+            ->assertDontSeeText('Close History');
+    }
 
-        $this
-            ->actingAs($admin)
-            ->patch(route('admin.reports.archive', $claimedReport))
-            ->assertRedirect(route('admin.dashboard'));
+    public function test_approved_reports_do_not_show_status_change_buttons_on_the_admin_dashboard(): void
+    {
+        $admin = User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => 'password',
+            'role' => 'admin',
+        ]);
 
-        $claimedReport->refresh();
-
-        $this->assertSame(ItemReport::STATUS_ARCHIVED, $claimedReport->status);
-        $this->assertNotNull($claimedReport->archived_at);
+        $approvedReport = ItemReport::create([
+            'user_id' => User::create([
+                'name' => 'Found Owner',
+                'email' => 'found-owner@example.com',
+                'password' => 'password',
+                'role' => 'student',
+            ])->id,
+            'type' => ItemReport::TYPE_FOUND,
+            'item_name' => 'Approved Backpack',
+            'category' => 'Bags',
+            'location' => 'Main hallway',
+            'description' => 'An approved report that should only show the photo action.',
+            'contact_name' => 'Found Owner',
+            'contact_email' => 'found-owner@example.com',
+            'photo_path' => 'uploads/item-reports/approved-backpack.jpg',
+            'status' => ItemReport::STATUS_APPROVED,
+            'reviewed_at' => now(),
+        ]);
 
         $this
             ->actingAs($admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertDontSeeText('Archive Wallet');
-
-        $this
-            ->actingAs($admin)
-            ->get(route('admin.dashboard', ['status' => ItemReport::STATUS_ARCHIVED]))
-            ->assertOk()
-            ->assertSeeText('Archive Wallet')
-            ->assertSeeText('archived');
+            ->assertSeeText('Approved Backpack')
+            ->assertSeeText('Approved')
+            ->assertSeeText('View Photo')
+            ->assertDontSee('data-target-status="approved"', false)
+            ->assertDontSee('data-target-status="rejected"', false)
+            ->assertDontSee('data-target-status="spam"', false)
+            ->assertDontSee('data-target-status="history"', false)
+            ->assertDontSeeText('Move to History')
+            ->assertDontSeeText('Close History');
     }
 }

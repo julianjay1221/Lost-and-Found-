@@ -3,6 +3,67 @@
 @section('title', 'Report Status')
 
 @section('content')
+    <style>
+        .student-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            max-width: 100%;
+        }
+
+        .student-actions form {
+            display: flex;
+            margin: 0;
+        }
+
+        .student-actions .button,
+        .student-actions .ghost-button,
+        .student-actions .danger-button {
+            min-width: 108px;
+            min-height: 38px;
+            padding: 0 16px;
+            white-space: nowrap;
+        }
+
+        .report-photo-frame {
+            max-width: 520px;
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .report-photo-frame img {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 4 / 3;
+            object-fit: cover;
+            border-radius: 10px;
+            background: #edf3ef;
+        }
+
+        @media (max-width: 520px) {
+            .student-actions {
+                gap: 8px;
+            }
+
+            .student-actions form,
+            .student-actions > .ghost-button {
+                flex: 1 1 128px;
+            }
+
+            .student-actions .button,
+            .student-actions .ghost-button,
+            .student-actions .danger-button {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+    </style>
+
     <section class="page-head">
         <div>
             <p class="eyebrow">Report Status</p>
@@ -13,7 +74,16 @@
                 <span class="badge badge-category">{{ $itemReport->category }}</span>
             </div>
         </div>
-        <a class="ghost-button" href="{{ route('home') }}">View Board</a>
+        <div class="student-actions">
+            <a class="ghost-button" href="{{ route('home') }}">View Board</a>
+            @if (auth()->user()?->isStudent() && $itemReport->user_id === auth()->id() && $itemReport->canBeDeletedByStudent())
+                <form method="POST" action="{{ route('reports.destroy', $itemReport) }}" onsubmit="return confirm('Delete this report?');">
+                    @csrf
+                    @method('DELETE')
+                    <button class="danger-button" type="submit">Delete Report</button>
+                </form>
+            @endif
+        </div>
     </section>
 
     <section class="panel" style="margin-bottom: 18px;">
@@ -46,6 +116,15 @@
             </div>
         </div>
 
+        @if ($itemReport->photoUrl())
+            <div style="margin-top: 16px;">
+                <h2>Item Photo</h2>
+                <div class="report-photo-frame">
+                    <img src="{{ $itemReport->photoUrl() }}" alt="{{ $itemReport->item_name }}">
+                </div>
+            </div>
+        @endif
+
         <div style="margin-top: 16px;">
             <h2>Description</h2>
             <p>{{ $itemReport->description }}</p>
@@ -58,21 +137,13 @@
             </div>
         @endif
 
-        @if (auth()->user()?->isStudent() && $itemReport->user_id === auth()->id() && $itemReport->canBeDeletedByStudent())
-            <form method="POST" action="{{ route('reports.destroy', $itemReport) }}" style="margin-top: 16px;" onsubmit="return confirm('Delete this report?');">
-                @csrf
-                @method('DELETE')
-                <button class="danger-button" type="submit">Delete Report</button>
-            </form>
-        @endif
-
     </section>
 
     @if ($claimableLostReport)
         <section class="panel" style="margin-bottom: 18px;">
             <h2>Matched Lost Report</h2>
             <p class="muted">This found item may match your lost report: {{ $claimableLostReport->item_name }}.</p>
-            <form method="POST" action="{{ route('reports.claim', $claimableLostReport) }}" style="margin-top: 12px; display: flex; justify-content: flex-start;">
+            <form method="POST" action="{{ route('reports.claim', $claimableLostReport) }}" class="student-actions" style="margin-top: 12px; justify-content: flex-start;">
                 @csrf
                 @method('PATCH')
                 <input type="hidden" name="matched_report_id" value="{{ $itemReport->id }}">
